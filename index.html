@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anticuerpos</title>
+<meta name="description" content="Arma un cuerpo sano con 4 órganos antes que tus rivales. Juega en tu móvil, contra bots o con amigos online.">
+<meta name="theme-color" content="#0E8574">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= SETUP SCREEN ================= -->
+  <section class="screen setup" id="screenSetup">
+    <div class="glyphs" id="setupGlyphs"></div>
+    <h1>Anticuerpos</h1>
+    <p class="tag">Construye un cuerpo sano con 4 órganos de colores distintos antes que tus rivales. Infecta con virus, cúrate con medicina.</p>
+
+    <div class="rules-card">
+      <h3>Cómo se gana</h3>
+      <ul>
+        <li>Coloca <b>órganos</b> de 4 colores distintos frente a ti.</li>
+        <li>Lanza <b>virus</b> a un órgano rival del mismo color para infectarlo; un segundo virus lo destruye.</li>
+        <li>Usa <b>medicina</b> en tu propio órgano para curarlo o inmunizarlo.</li>
+        <li>Las cartas de <b>tratamiento</b> alteran el tablero: robos, contagios, trueques.</li>
+        <li>Gana quien complete su cuerpo con 4 órganos sanos o inmunes.</li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="field-label" style="margin-bottom:8px;">Modo de juego</div>
+      <div class="segmented" id="modeSelect">
+        <button data-mode="local" class="active">Este dispositivo<small>Hasta 4 bots</small></button>
+        <button data-mode="online">Online<small>Con amigos</small></button>
+      </div>
+    </div>
+
+    <div id="localOptions">
+      <div class="field-label" style="margin-bottom:8px;">Rivales (bots)</div>
+      <div class="segmented" id="oppSelect">
+        <button data-n="1" class="active">1<small>Duelo</small></button>
+        <button data-n="2">2<small>Trío</small></button>
+        <button data-n="3">3<small>Caos</small></button>
+        <button data-n="4">4<small>Máximo</small></button>
+      </div>
+      <button class="btn-primary" id="btnStartLocal" style="width:100%;margin-top:16px;">Empezar partida</button>
+    </div>
+
+    <div id="onlineOptions" hidden>
+      <div class="field-label" style="margin-bottom:8px;">Tu nombre</div>
+      <input class="text-input" id="nameInput" maxlength="16" placeholder="Ej. Marta" autocomplete="off">
+      <div class="online-actions">
+        <button class="btn-primary" id="btnCreateRoom">Crear sala</button>
+        <button class="btn-secondary" id="btnShowJoin">Unirse a una sala</button>
+      </div>
+      <div id="joinRow" hidden style="margin-top:10px;">
+        <input class="text-input code-input" id="codeInput" maxlength="4" placeholder="CÓDIGO" autocomplete="off">
+        <button class="btn-primary" id="btnJoinRoom" style="width:100%;">Entrar a la sala</button>
+      </div>
+      <p class="hint" id="onlineHint"></p>
+    </div>
+  </section>
+
+  <!-- ================= LOBBY SCREEN ================= -->
+  <section class="screen lobby" id="screenLobby" hidden>
+    <div class="lobby-inner">
+      <div class="field-label">Código de sala</div>
+      <div class="room-code mono" id="roomCodeDisplay">····</div>
+      <p class="hint">Comparte este código con tus amigos para que se unan desde su móvil.</p>
+      <div class="seats" id="seatsList"></div>
+      <div class="lobby-actions" id="lobbyHostActions">
+        <button class="btn-secondary" id="btnAddBot">Añadir CPU</button>
+        <button class="btn-primary" id="btnStartOnline">Empezar partida</button>
+      </div>
+      <p class="hint" id="lobbyWaitingMsg" hidden>Esperando a que el anfitrión empiece la partida…</p>
+      <button class="btn-text" id="btnLeaveLobby">Salir de la sala</button>
+    </div>
+  </section>
+
+  <!-- ================= GAME SCREEN ================= -->
+  <section class="screen game" id="screenGame" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="dot" id="brandIcon"></span> Anticuerpos</div>
+      <div class="turn-indicator mono" id="turnIndicator">Turno de <b>—</b></div>
+      <button class="helpbtn" id="btnHelp">?</button>
+    </header>
+
+    <div class="opponents" id="opponents"></div>
+
+    <div class="table">
+      <div class="pile drawpile" id="drawPile"></div>
+      <div class="log mono" id="log"></div>
+      <div class="pile discardpile" id="discardPile"></div>
+    </div>
+
+    <div class="myboard">
+      <div class="rowlabel">Tu cuerpo</div>
+      <div class="myslots" id="myBoard"></div>
+    </div>
+
+    <div class="handbar">
+      <div class="status" id="statusLine">Cargando…</div>
+      <div class="hand" id="hand"></div>
+      <div class="actions" id="actionBar">
+        <button id="btnDiscard">Descartar y robar</button>
+        <button id="btnPass" hidden>Pasar turno</button>
+        <button class="danger" id="btnCancel" hidden>Cancelar</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="overlayRoot"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW registration failed', e); });
+    });
+  }
+</script>
+</body>
+</html>
