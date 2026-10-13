@@ -9,10 +9,12 @@ service cloud.firestore {
       function after() { return request.resource.data; }
       function isHost() { return me() == before().hostId; }
 
-      // La sala no cambia de anfitrion ni de fecha, y solo tiene estos campos.
+      function hostSame() { return after().hostId == before().hostId; }
+      function pingSame() { return after().get('hostPing', null) == before().get('hostPing', null); }
+
+      // La sala no cambia de fecha y solo tiene estos campos.
       function roomShape() {
-        return after().keys().hasOnly(['status', 'hostId', 'seats', 'uids', 'createdAt', 'gameState'])
-          && after().hostId == before().hostId
+        return after().keys().hasOnly(['status', 'hostId', 'hostPing', 'seats', 'uids', 'createdAt', 'gameState'])
           && after().createdAt == before().createdAt
           && after().seats is list && after().seats.size() <= 5
           && after().uids is list;
@@ -92,22 +94,60 @@ service cloud.firestore {
           && after().gameState.turnCount == before().gameState.turnCount + 1;
       }
 
+      // El anfitrion marca que sigue vivo (hostPing = hora del servidor, cada 15 s).
+      function isHeartbeat() {
+        return isHost() && hostSame()
+          && after().diff(before()).affectedKeys().hasOnly(['hostPing'])
+          && after().hostPing == request.time;
+      }
+
+      // El anfitrion cede el cargo a otro jugador humano de la sala (al abandonar).
+      // En el lobby ademas deja su asiento.
+      function isHostHandover() {
+        return isHost() && !hostSame()
+          && after().hostId != me() && after().hostId in before().uids
+          && before().status in ['lobby', 'playing'] && after().status == before().status
+          && after().diff(before()).affectedKeys().hasOnly(['hostId', 'seats', 'uids'])
+          && ((after().seats == before().seats && after().uids == before().uids)
+              || (before().status == 'lobby'
+                  && after().uids == before().uids.removeAll([me()])
+                  && after().seats.size() == before().seats.size() - 1
+                  && before().seats.hasAll(after().seats)));
+      }
+
+      // Un jugador de la sala se hace anfitrion si el anfitrion lleva mas de 40 s sin dar senales de vida.
+      function isHostTakeover() {
+        return !isHost() && me() in before().uids
+          && after().hostId == me()
+          && before().status in ['lobby', 'playing'] && after().status == before().status
+          && after().diff(before()).affectedKeys().hasOnly(['hostId', 'hostPing'])
+          && after().hostPing == request.time
+          && request.time > before().hostPing + duration.value(40, 's');
+      }
+
       // Solo se puede abrir una sala concreta si se conoce su codigo; no se pueden listar.
       allow get: if signedIn();
       allow list: if false;
 
       allow create: if signedIn()
         && roomId.matches('^[A-HJ-NP-Z2-9]{4}$')
-        && after().keys().hasOnly(['status', 'hostId', 'seats', 'uids', 'createdAt'])
+        && after().keys().hasOnly(['status', 'hostId', 'hostPing', 'seats', 'uids', 'createdAt'])
         && after().status == 'lobby'
         && after().hostId == me()
+        && (!('hostPing' in after()) || after().hostPing == request.time)
         && after().uids == [me()]
         && after().seats.size() == 1
         && after().seats[0].clientId == me()
         && after().seats[0].isBot == false;
 
       allow update: if signedIn() && roomShape()
-        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove() || isGloveResponse() || isHostSkip());
+        && ((hostSame()
+              && (isHeartbeat()
+                  || (pingSame()
+                      && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove()
+                          || isGloveResponse() || isHostSkip()))))
+            || isHostHandover()
+            || isHostTakeover());
 
       // Solo el anfitrion puede cerrar la sala, empezada o no.
       allow delete: if signedIn() && isHost();

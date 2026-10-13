@@ -837,6 +837,7 @@
       onlineRoomRef = db.collection('rooms').doc(code);
       return onlineRoomRef.set({
         status:'lobby', hostId:MY_ID,
+        hostPing: firebase.firestore.FieldValue.serverTimestamp(),
         seats:[{clientId:MY_ID, name:MY_NAME, isBot:false}],
         uids:[MY_ID],
         createdAt: Date.now()
@@ -898,12 +899,14 @@
     showScreen('lobby');
     if(onlineUnsub) onlineUnsub();
     startHandListeners();
+    startHostWatch();
     onlineUnsub = onlineRoomRef.onSnapshot(function(snap){
       if(!snap.exists){
         document.getElementById('overlayRoot').innerHTML='';
         toast('La sala ha sido cerrada.'); leaveOnlineRoomSilently(); goToSetup(); return;
       }
       var data = snap.data();
+      trackHost(data);
       if(data.status==='lobby'){
         renderLobby(data);
       } else if(data.status==='playing' || data.status==='over'){
@@ -911,6 +914,10 @@
         isOnlineHost = data.hostId===MY_ID;
         state = data.gameState;
         if(isOnlineHost) startBotHandListeners();
+        else if(botListening){   /* perdí el cargo de anfitrión: ya no puedo leer las manos de las CPUs */
+          botHandUnsubs.forEach(function(u){ u(); });
+          botHandUnsubs = []; botHands = {}; botHandReady = {}; botListening = false;
+        }
         attachHands();
         showScreen('game');
         render();
@@ -1000,13 +1007,24 @@
   function leaveOnlineRoomSilently(removeFromSeats){
     if(onlineUnsub){ onlineUnsub(); onlineUnsub=null; }
     stopHandListeners();
+    stopHostWatch();
     if(removeFromSeats && onlineRoomRef){
       var ref = onlineRoomRef;
       ref.get().then(function(snap){
         if(!snap.exists) return;
         var data = snap.data();
-        /* si se va el anfitrión la sala se cierra, empezada o no: sin él nadie podría seguir */
         if(data.hostId===MY_ID){
+          /* si se va el anfitrión cede el cargo a otro jugador humano; si no hay nadie más (o la
+             partida ya terminó) la sala se cierra */
+          var next = (data.seats||[]).find(function(s){ return !s.isBot && s.clientId!==MY_ID; });
+          if(next && (data.status==='lobby' || data.status==='playing')){
+            var upd = {hostId: next.clientId};
+            if(data.status==='lobby'){
+              upd.seats = (data.seats||[]).filter(function(s){ return s.clientId!==MY_ID; });
+              upd.uids = (data.uids||[]).filter(function(u){ return u!==MY_ID; });
+            }
+            return ref.update(upd);
+          }
           var batch = fbDb.batch();
           (data.seats||[]).forEach(function(s){ batch.delete(ref.collection('hands').doc(s.clientId)); });
           batch.delete(ref);
@@ -1020,6 +1038,69 @@
     }
     localStorage.removeItem('anticuerpos_room');
     onlineRoomRef=null; onlineRoomCode=null; hostBotScheduledTurn=-1;
+  }
+
+  /* ---- Traspaso de anfitrión ----
+     El anfitrión escribe un latido (hostPing, hora del servidor) cada HEARTBEAT_MS. Los demás miran si
+     cambia, con su propio reloj. Si no cambia en HOST_TIMEOUT_MS, el primer humano de la lista (los
+     siguientes esperan 10 s más cada uno) se hace anfitrión con una transacción; las reglas de Firestore
+     solo lo permiten si en el servidor han pasado más de 40 s desde el último latido. */
+  var HEARTBEAT_MS = 15000, HOST_TIMEOUT_MS = 45000;
+  var hostTimer = null, lastBeatAt = 0, lastRoom = null, lastHostId = null, lastPingKey = null, hostChangeAt = 0, takingOver = false;
+
+  function trackHost(data){
+    var ping = data.hostPing && data.hostPing.toMillis ? data.hostPing.toMillis() : 'pendiente';
+    var key = data.hostId+'|'+ping;
+    if(key!==lastPingKey){ lastPingKey = key; hostChangeAt = Date.now(); }
+    if(lastHostId!==null && data.hostId!==lastHostId){
+      if(data.hostId===MY_ID) toast('Ahora eres el anfitrión de la sala.', 3000);
+      else {
+        var h = (data.seats||[]).find(function(s){ return s.clientId===data.hostId; });
+        toast((h ? h.name : 'Otro jugador')+' es ahora el anfitrión.', 3000);
+      }
+    }
+    lastHostId = data.hostId;
+    lastRoom = data;
+    isOnlineHost = data.hostId===MY_ID;
+  }
+  function startHostWatch(){
+    stopHostWatch();
+    hostChangeAt = Date.now();
+    hostTimer = setInterval(function(){
+      if(!onlineRoomRef || !lastRoom) return;
+      if(isOnlineHost){
+        if(lastRoom.status!=='over' && Date.now()-lastBeatAt>=HEARTBEAT_MS){
+          lastBeatAt = Date.now();
+          onlineRoomRef.update({hostPing: firebase.firestore.FieldValue.serverTimestamp()}).catch(function(){});
+        }
+        return;
+      }
+      checkHostAlive();
+    }, 5000);
+  }
+  function stopHostWatch(){
+    if(hostTimer){ clearInterval(hostTimer); hostTimer = null; }
+    lastRoom = null; lastHostId = null; lastPingKey = null; takingOver = false;
+  }
+  function checkHostAlive(){
+    if(takingOver || lastRoom.status==='over') return;
+    var humans = (lastRoom.seats||[]).filter(function(s){ return !s.isBot && s.clientId!==lastRoom.hostId; });
+    var rank = humans.findIndex(function(s){ return s.clientId===MY_ID; });
+    if(rank<0 || Date.now()-hostChangeAt < HOST_TIMEOUT_MS + rank*10000) return;
+    takeOverHost();
+  }
+  function takeOverHost(){
+    takingOver = true;
+    var ref = onlineRoomRef, seen = lastRoom;
+    function millis(d){ return d.hostPing && d.hostPing.toMillis ? d.hostPing.toMillis() : 0; }
+    fbDb.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        if(!snap.exists) return;
+        var d = snap.data();
+        if(d.hostId!==seen.hostId || d.status==='over' || millis(d)!==millis(seen)) return;   /* dio señales de vida */
+        tx.update(ref, {hostId: MY_ID, hostPing: firebase.firestore.FieldValue.serverTimestamp()});
+      });
+    }).then(function(){ takingOver = false; }, function(err){ takingOver = false; console.warn('traspaso', err); });
   }
 
   /* ---- Manos privadas ----
