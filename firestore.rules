@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      // Solo se puede leer una sala concreta por su codigo; no se pueden listar.
+      allow get: if true;
+      allow list: if false;
+
+      allow create: if roomId.matches('^[A-HJ-NP-Z2-9]{4}$')
+        && request.resource.data.keys().hasOnly(['status', 'hostId', 'seats', 'createdAt'])
+        && request.resource.data.status == 'lobby'
+        && request.resource.data.seats is list
+        && request.resource.data.seats.size() <= 5;
+
+      allow update: if request.resource.data.keys().hasOnly(['status', 'hostId', 'seats', 'createdAt', 'gameState'])
+        && request.resource.data.hostId == resource.data.hostId
+        && request.resource.data.status in ['lobby', 'playing', 'over']
+        && request.resource.data.seats is list
+        && request.resource.data.seats.size() <= 5;
+
+      // Una partida en curso no se puede borrar.
+      allow delete: if resource.data.status in ['lobby', 'over'];
+    }
+  }
+}
