@@ -73,7 +73,9 @@
   }
   function me(){ return state.players.find(function(p){ return p.id===MY_ID; }); }
   function currentPlayer(){ return state.players[state.turn]; }
-  function isHumanTurn(){ return !!state && !state.over && currentPlayer().id===MY_ID; }
+  /* mientras haya víctimas de un Guante de Látex descartando su mano (solo online), nadie juega */
+  function glovePending(){ return !!state && !!state.gloveFor && state.gloveFor.length>0; }
+  function isHumanTurn(){ return !!state && !state.over && !glovePending() && currentPlayer().id===MY_ID; }
   function opponentsOf(p){ return state.players.filter(function(o){ return o.id!==p.id; }); }
 
   function drawOne(player){
@@ -177,13 +179,19 @@
         if(s2.id!=null) state.discard.push({id:s2.id, type:'organ', color:s2.wild?'wild':s2.color});
         addLog(actor.name+' destruye el '+COLOR_LABEL[target.slot]+' de '+owner.name+'!'); }
     }
-    state.discard.push(card);
+    /* un órgano jugado se queda en el tablero; solo vuelve al descarte si lo destruyen (más arriba) */
+    if(card.type!=='organ') state.discard.push(card);
   }
   function playTreatment(actor, card, choice){
     removeFromHand(actor, card);
     state.discard.push(card);
     if(card.kind==='guante'){
-      opponentsOf(actor).forEach(function(p){ state.discard.push.apply(state.discard, p.hand); p.hand=[]; });
+      if(GAME_MODE==='online'){
+        /* las manos ajenas son privadas: cada víctima (o el anfitrión, si es una CPU) descarta la suya al ver la marca */
+        state.gloveFor = (state.gloveFor||[]).concat(opponentsOf(actor).map(function(p){ return p.id; }).filter(function(id){ return (state.gloveFor||[]).indexOf(id)<0; }));
+      } else {
+        opponentsOf(actor).forEach(function(p){ state.discard.push.apply(state.discard, p.hand); p.hand=[]; });
+      }
       addLog(actor.name+' usa Guante de Látex: ¡todos descartan su mano!');
     } else if(card.kind==='contagio'){
       COLORS.forEach(function(c){
@@ -346,6 +354,7 @@
   function updateStatusLine(){
     if(!state) return;
     if(state.over){ setStatus('Partida terminada.'); return; }
+    if(glovePending()){ setStatus('Guante de Látex: los rivales descartan su mano…'); return; }
     if(isHumanTurn()) setStatus('Tu turno: toca una carta para jugarla, o descarta.');
     else setStatus(currentPlayer().name+' está jugando…');
   }
@@ -447,8 +456,10 @@
         var targetable = targets.some(function(t){ return t.playerId===p.id && t.slot===c; });
         return slotHTML(p, c, {targetable:targetable});
       }).join('');
+      var handCount = p.hand ? p.hand.length : ((state.handCounts && state.handCounts[p.id]) || 0);
+      var backs = ''; for(var b=0;b<handCount;b++) backs += '<span class="cardback"></span>';
       return '<div class="oppcard'+active+'">'+
-        '<div class="opphead"><div class="oppname">'+escapeHtml(p.name)+'</div><div class="opphand mono">'+p.hand.map(function(){return '<span class="cardback"></span>';}).join('')+' '+p.hand.length+'</div></div>'+
+        '<div class="opphead"><div class="oppname">'+escapeHtml(p.name)+'</div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
         '<div class="oppslots">'+slots+'</div>'+
       '</div>';
     }).join('');
@@ -525,13 +536,21 @@
     if(GAME_MODE==='online') commitOnlineAction();
     else finishHumanAction();
   }
-  function commitOnlineAction(){
-    state.turnCount = (state.turnCount||0)+1;
+  /* Cierra el turno online. Tras un Guante de Látex el turno NO avanza: lo avanza la última víctima
+     al descartar su mano (respondGlove). Así nadie sobrescribe la sala con una copia vieja mientras
+     las víctimas escriben, que era lo que hacía perder o duplicar cartas.
+     Cada jugador roba al empezar SU turno. */
+  function endOnlineTurn(){
     var w = checkAnyWin();
-    if(w){ state.over=true; state.winnerId=w.id; }
-    else { state.turn = (state.turn+1) % state.players.length; drawToHand(currentPlayer()); }
+    if(w){ state.turnCount=(state.turnCount||0)+1; state.over=true; state.winnerId=w.id; return; }
+    if((state.gloveFor||[]).length>0) return;
+    state.turnCount = (state.turnCount||0)+1;
+    state.turn = (state.turn+1) % state.players.length;
+  }
+  function commitOnlineAction(){
+    endOnlineTurn();
     render();
-    pushOnlineState();
+    pushOnlineState([me()]);
   }
 
   /* ================= EVENT WIRING (game screen) ================= */
@@ -594,9 +613,8 @@
   function commitPassOnline(){
     state.turnCount=(state.turnCount||0)+1;
     state.turn=(state.turn+1)%state.players.length;
-    drawToHand(currentPlayer());
     render();
-    pushOnlineState();
+    pushOnlineState([]);
   }
   document.getElementById('btnDiscard').addEventListener('click', function(){
     if(!isHumanTurn()) return;
@@ -827,6 +845,7 @@
     winShown = false; lastLogShown = null; seenCardIds = {};
     showScreen('lobby');
     if(onlineUnsub) onlineUnsub();
+    startHandListeners();
     onlineUnsub = onlineRoomRef.onSnapshot(function(snap){
       if(!snap.exists){
         document.getElementById('overlayRoot').innerHTML='';
@@ -839,6 +858,8 @@
         GAME_MODE = 'online';
         isOnlineHost = data.hostId===MY_ID;
         state = data.gameState;
+        if(isOnlineHost) startBotHandListeners();
+        attachHands();
         showScreen('game');
         render();
         if(data.status==='over' && !winShown){
@@ -846,7 +867,7 @@
           var w = state.players.find(function(p){ return p.id===state.winnerId; });
           if(w) showWin(w);
         }
-        if(!state.over && isOnlineHost) maybeRunHostBotTurn();
+        onlineTurnHooks();
       }
     }, function(err){ toast('Conexión perdida: '+err.message); });
   }
@@ -906,26 +927,39 @@
       if(seats.length<2) return;
       var players = seats.map(function(s){
         var board={}; COLORS.forEach(function(c){ board[c]=null; });
-        return {id:s.clientId, name:s.name, isBot:!!s.isBot, hand:[], board:board};
+        return {id:s.clientId, name:s.name, isBot:!!s.isBot, board:board};
       });
       var deck = buildDeck();
+      var hands = {}, handCounts = {};
       players.forEach(function(p){
-        while(p.hand.length<HAND_SIZE){ if(deck.length===0) break; p.hand.push(deck.pop()); }
+        hands[p.id] = [];
+        while(hands[p.id].length<HAND_SIZE){ if(deck.length===0) break; hands[p.id].push(deck.pop()); }
+        handCounts[p.id] = hands[p.id].length;
       });
-      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:['La partida comienza. ¡Suerte, doctor!'], over:false, winnerId:null };
-      return onlineRoomRef.update({status:'playing', gameState: gs});
-    });
+      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:['La partida comienza. ¡Suerte, doctor!'], over:false, winnerId:null, handCounts:handCounts, gloveFor:[] };
+      /* las manos van a documentos privados (hands/{uid}); en la sala solo queda cuántas cartas tiene cada uno */
+      var batch = fbDb.batch();
+      batch.update(onlineRoomRef, {status:'playing', gameState: gs});
+      players.forEach(function(p){ batch.set(handsCol().doc(p.id), {cards: hands[p.id]}); });
+      return batch.commit();
+    }).catch(function(err){ toast('No se pudo empezar la partida: '+err.message); });
   });
 
   function leaveOnlineRoomSilently(removeFromSeats){
     if(onlineUnsub){ onlineUnsub(); onlineUnsub=null; }
+    stopHandListeners();
     if(removeFromSeats && onlineRoomRef){
       var ref = onlineRoomRef;
       ref.get().then(function(snap){
         if(!snap.exists) return;
         var data = snap.data();
         /* si se va el anfitrión la sala se cierra, empezada o no: sin él nadie podría seguir */
-        if(data.hostId===MY_ID) return ref.delete();
+        if(data.hostId===MY_ID){
+          var batch = fbDb.batch();
+          (data.seats||[]).forEach(function(s){ batch.delete(ref.collection('hands').doc(s.clientId)); });
+          batch.delete(ref);
+          return batch.commit();
+        }
         if(data.status!=='lobby') return;
         var seats=(data.seats||[]).filter(function(s){ return s.clientId!==MY_ID; });
         var uids=(data.uids||[]).filter(function(u){ return u!==MY_ID; });
@@ -936,23 +970,142 @@
     onlineRoomRef=null; onlineRoomCode=null; hostBotScheduledTurn=-1;
   }
 
-  function pushOnlineState(){
+  /* ---- Manos privadas ----
+     En la sala (rooms/{code}) solo hay tableros, mazo, descarte y cuántas cartas tiene cada jugador.
+     La mano de cada jugador vive en rooms/{code}/hands/{uid}, que solo puede leer su dueño
+     (y el anfitrión, para las CPUs). */
+  var myHandCards = [], myHandReady = false, handUnsub = null;
+  var botHands = {}, botHandReady = {}, botHandUnsubs = [], botListening = false;
+  var drawGuard = -1, gloveBusy = {};
+
+  function handsCol(){ return onlineRoomRef.collection('hands'); }
+
+  function startHandListeners(){
+    stopHandListeners();
+    handUnsub = handsCol().doc(MY_ID).onSnapshot(function(s){
+      myHandCards = s.exists ? (s.data().cards||[]) : [];
+      myHandReady = true;
+      afterHandChange();
+    }, function(err){ console.warn('mano', err); });
+  }
+  function startBotHandListeners(){
+    if(botListening || !state) return;
+    botListening = true;
+    state.players.forEach(function(p){
+      if(!p.isBot) return;
+      botHandUnsubs.push(handsCol().doc(p.id).onSnapshot(function(s){
+        botHands[p.id] = s.exists ? (s.data().cards||[]) : [];
+        botHandReady[p.id] = true;
+        afterHandChange();
+      }, function(err){ console.warn('mano CPU', err); }));
+    });
+  }
+  function stopHandListeners(){
+    if(handUnsub){ handUnsub(); handUnsub = null; }
+    botHandUnsubs.forEach(function(u){ u(); });
+    botHandUnsubs = []; botHands = {}; botHandReady = {}; botListening = false;
+    myHandCards = []; myHandReady = false; drawGuard = -1; gloveBusy = {};
+  }
+  /* pone en `state` las manos que este cliente tiene permiso de ver: la suya y, si es el anfitrión, las de las CPUs */
+  function attachHands(){
+    if(!state) return;
+    state.players.forEach(function(p){
+      if(p.id===MY_ID) p.hand = myHandCards.slice();
+      else if(p.isBot && isOnlineHost && botHandReady[p.id]) p.hand = botHands[p.id].slice();
+      else delete p.hand;
+    });
+  }
+  function afterHandChange(){
+    if(!state || GAME_MODE!=='online') return;
+    attachHands();
+    render();
+    onlineTurnHooks();
+  }
+  function publicState(){
+    var gs = JSON.parse(JSON.stringify(state));
+    gs.handCounts = gs.handCounts || {};
+    gs.gloveFor = gs.gloveFor || [];
+    gs.players.forEach(function(p){
+      if(p.hand) gs.handCounts[p.id] = p.hand.length;
+      delete p.hand;
+    });
+    return gs;
+  }
+  /* escribe el estado público de la sala y, en el mismo lote, la mano de quien ha actuado */
+  function pushOnlineState(handOwners, onFail){
     if(!onlineRoomRef) return;
-    var snapshot = JSON.parse(JSON.stringify(state));
-    onlineRoomRef.update({ gameState: snapshot, status: state.over?'over':'playing' })
-      .catch(function(err){ toast('No se pudo sincronizar: '+err.message); });
+    var batch = fbDb.batch();
+    batch.update(onlineRoomRef, { gameState: publicState(), status: state.over?'over':'playing' });
+    (handOwners||[]).forEach(function(p){
+      batch.set(handsCol().doc(p.id), { cards: JSON.parse(JSON.stringify(p.hand||[])) });
+    });
+    batch.commit().catch(function(err){ toast('No se pudo sincronizar: '+err.message); if(onFail) onFail(); });
+  }
+
+  /* Guante de Látex: quien lo sufre descarta su mano (el anfitrión lo hace por las CPUs) */
+  function respondGlove(id, cards){
+    if(gloveBusy[id]) return;
+    gloveBusy[id] = true;
+    var ref = onlineRoomRef, handRef = handsCol().doc(id);
+    fbDb.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var gs = snap.exists && snap.data().gameState;
+        if(!gs || (gs.gloveFor||[]).indexOf(id)<0) return;
+        var upd = {};
+        var remaining = gs.gloveFor.filter(function(x){ return x!==id; });
+        upd['gameState.discard'] = (gs.discard||[]).concat(cards);
+        upd['gameState.gloveFor'] = remaining;
+        upd['gameState.handCounts.'+id] = 0;
+        if(remaining.length===0 && !gs.over){   /* la última víctima pasa el turno que el Guante dejó pendiente */
+          upd['gameState.turn'] = (gs.turn+1) % gs.players.length;
+          upd['gameState.turnCount'] = (gs.turnCount||0)+1;
+        }
+        tx.update(ref, upd);
+        tx.set(handRef, {cards: []});
+      });
+    }).then(function(){ gloveBusy[id] = false; }, function(err){ gloveBusy[id] = false; console.warn('guante', err); });
+  }
+  function respondGloveIfNeeded(){
+    var pending = state.gloveFor || [];
+    if(!pending.length) return;
+    if(pending.indexOf(MY_ID)>-1 && myHandReady) respondGlove(MY_ID, myHandCards.slice());
+    if(isOnlineHost) pending.forEach(function(id){
+      if(id!==MY_ID && botHandReady[id]) respondGlove(id, (botHands[id]||[]).slice());
+    });
+  }
+  /* cada jugador roba al empezar SU turno */
+  function maybeDrawMyHand(){
+    if(!isHumanTurn() || !myHandReady) return;
+    var p = me();
+    if(!p.hand || p.hand.length>=HAND_SIZE || drawGuard===state.turnCount) return;
+    drawGuard = state.turnCount;
+    var before = p.hand.length;
+    drawToHand(p);
+    if(p.hand.length===before) return;
+    render();
+    pushOnlineState([p], function(){ drawGuard = -1; });
+  }
+  function onlineTurnHooks(){
+    if(!state || state.over) return;
+    respondGloveIfNeeded();
+    if(glovePending()) return;   /* primero se descartan las manos, luego se roba y se juega */
+    maybeDrawMyHand();
+    if(isOnlineHost) maybeRunHostBotTurn();
   }
 
   function maybeRunHostBotTurn(){
     var cp = currentPlayer();
-    if(!cp || !cp.isBot) return;
+    if(!cp || !cp.isBot || !botHandReady[cp.id]) return;
+    if(glovePending()) return;
     if(hostBotScheduledTurn===state.turnCount) return;
     hostBotScheduledTurn = state.turnCount;
     var expectedTurnCount = state.turnCount;
     setTimeout(function(){
       if(!state || state.over || state.turnCount!==expectedTurnCount) return;
+      attachHands();
       var bot = currentPlayer();
-      if(!bot.isBot) return;
+      if(!bot.isBot || !bot.hand) return;
+      drawToHand(bot);
       var action = decideBotAction(bot);
       if(action.type==='play'){
         if(action.card.type==='treatment') playTreatment(bot, action.card, action.target||{});
@@ -960,12 +1113,9 @@
       } else {
         discardAndRedraw(bot, action.cardIds);
       }
-      state.turnCount = (state.turnCount||0)+1;
-      var w = checkAnyWin();
-      if(w){ state.over=true; state.winnerId=w.id; }
-      else { state.turn=(state.turn+1)%state.players.length; drawToHand(currentPlayer()); }
+      endOnlineTurn();
       render();
-      pushOnlineState();
+      pushOnlineState([bot]);
     }, 900);
   }
 

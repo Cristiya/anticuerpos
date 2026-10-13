@@ -63,6 +63,22 @@ service cloud.firestore {
           );
       }
 
+      // Guante de Latex: la victima (o el anfitrion, por una CPU) descarta su mano y se quita de la lista.
+      // La ultima victima pasa ademas el turno que el Guante dejo pendiente (solo a la posicion siguiente).
+      function isGloveResponse() {
+        return before().status == 'playing' && after().status == 'playing'
+          && after().seats == before().seats
+          && after().uids == before().uids
+          && after().gameState is map && before().gameState is map
+          && after().gameState.diff(before().gameState).affectedKeys().hasOnly(['discard', 'gloveFor', 'handCounts', 'turn', 'turnCount'])
+          && after().gameState.gloveFor.size() < before().gameState.gloveFor.size()
+          && (after().gameState.turn == before().gameState.turn
+              || (after().gameState.gloveFor.size() == 0
+                  && after().gameState.turn == (before().gameState.turn + 1) % before().gameState.players.size()))
+          && (me() in before().gameState.gloveFor
+              || (isHost() && before().gameState.gloveFor.size() > 0));
+      }
+
       // Solo se puede abrir una sala concreta si se conoce su codigo; no se pueden listar.
       allow get: if signedIn();
       allow list: if false;
@@ -78,10 +94,42 @@ service cloud.firestore {
         && after().seats[0].isBot == false;
 
       allow update: if signedIn() && roomShape()
-        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove());
+        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove() || isGloveResponse());
 
       // Solo el anfitrion puede cerrar la sala, empezada o no.
       allow delete: if signedIn() && isHost();
+
+      // Manos privadas: rooms/{sala}/hands/{uid}. Solo las lee su propietario (y el anfitrion, las de las CPUs).
+      match /hands/{ownerId} {
+        function room() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
+        function isRoomHost() { return request.auth.uid == room().hostId; }
+        function isBotHand() { return ownerId.matches('^bot_.*'); }
+        function turnPlayerId() { return room().gameState.players[room().gameState.turn].id; }
+        function inPlay() { return room().status == 'playing'; }
+
+        allow read: if signedIn()
+          && (request.auth.uid == ownerId || (isBotHand() && isRoomHost()));
+
+        allow create, update: if signedIn()
+          && request.resource.data.keys().hasOnly(['cards'])
+          && request.resource.data.cards is list
+          && request.resource.data.cards.size() <= 3
+          && (
+            // reparto inicial, lo hace el anfitrion al empezar
+            (isRoomHost() && room().status == 'lobby')
+            // robar o jugar en mi turno
+            || (inPlay() && request.auth.uid == ownerId && turnPlayerId() == ownerId)
+            // descartar la mano por un Guante de Latex
+            || (inPlay() && request.auth.uid == ownerId
+                && request.resource.data.cards.size() == 0
+                && ownerId in room().gameState.gloveFor)
+            // turno o guante de una CPU, gestionado por el anfitrion
+            || (inPlay() && isBotHand() && isRoomHost()
+                && (turnPlayerId() == ownerId || ownerId in room().gameState.gloveFor))
+          );
+
+        allow delete: if signedIn() && (request.auth.uid == ownerId || isRoomHost());
+      }
     }
   }
 }
