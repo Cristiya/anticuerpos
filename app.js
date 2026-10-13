@@ -502,7 +502,59 @@
     document.getElementById('btnDiscard').textContent = discardMode ? 'Confirmar descarte ('+discardMarks.length+')' : 'Descartar y robar';
     document.getElementById('btnCancel').hidden = !(canAct && (discardMode || selection.cardId));
     document.getElementById('btnPass').hidden = !(canAct && me().hand.length===0);
+    var skip = skipTarget();
+    var btnSkip = document.getElementById('btnSkip');
+    btnSkip.hidden = !skip;
+    if(skip) btnSkip.textContent = skip.glove ? 'Sacar a '+skip.name+' del Guante' : 'Saltar el turno de '+skip.name;
   }
+
+  /* ---- Jugador que no responde (solo el anfitrión, solo online) ----
+     Si el turno (o un Guante de Látex pendiente) lleva SKIP_DELAY_MS sin cambiar y depende de otra
+     persona, el anfitrión puede saltarlo. No hay detección de "desconectado": es una decisión suya. */
+  var SKIP_DELAY_MS = 20000, turnKey = null, turnSince = 0, skipTimer = null;
+  function skipTarget(){
+    if(GAME_MODE!=='online' || !isOnlineHost || !state || state.over) return null;
+    var key = state.turnCount+'|'+(state.gloveFor||[]).join(',');
+    if(key!==turnKey){
+      turnKey = key; turnSince = Date.now();
+      clearTimeout(skipTimer);
+      skipTimer = setTimeout(function(){ if(state) renderActionBar(); }, SKIP_DELAY_MS+200);
+    }
+    var glove = glovePending(), target = null;
+    if(glove){
+      target = state.players.find(function(p){ return !p.isBot && p.id!==MY_ID && state.gloveFor.indexOf(p.id)>-1; });
+    } else {
+      var cp = currentPlayer();
+      if(cp && !cp.isBot && cp.id!==MY_ID) target = cp;
+    }
+    if(!target || Date.now()-turnSince<SKIP_DELAY_MS) return null;
+    return {id:target.id, name:target.name, glove:glove};
+  }
+  function skipAbsent(){
+    var t = skipTarget(); if(!t || !onlineRoomRef) return;
+    if(!window.confirm(t.glove ? '¿Sacar a '+t.name+' del Guante de Látex? Conservará su mano.' : '¿Saltar el turno de '+t.name+'?')) return;
+    var ref = onlineRoomRef;
+    fbDb.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var gs = snap.exists && snap.data().gameState;
+        if(!gs || gs.over) return;
+        var upd = {}, n = gs.players.length;
+        if((gs.gloveFor||[]).length){
+          if(gs.gloveFor.indexOf(t.id)<0) return;
+          var remaining = gs.gloveFor.filter(function(x){ return x!==t.id; });
+          upd['gameState.gloveFor'] = remaining;
+          if(!remaining.length){ upd['gameState.turn'] = (gs.turn+1)%n; upd['gameState.turnCount'] = (gs.turnCount||0)+1; }
+        } else {
+          if(gs.players[gs.turn].id!==t.id) return;
+          upd['gameState.turn'] = (gs.turn+1)%n;
+          upd['gameState.turnCount'] = (gs.turnCount||0)+1;
+        }
+        upd['gameState.log'] = [t.name+(t.glove?' sale del Guante (sin respuesta).':' pierde el turno (sin respuesta).')].concat(gs.log||[]).slice(0,40);
+        tx.update(ref, upd);
+      });
+    }).catch(function(err){ toast('No se pudo saltar el turno: '+err.message); });
+  }
+  document.getElementById('btnSkip').addEventListener('click', skipAbsent);
 
   /* ================= TARGET SHEET ================= */
   function closeSheet(){ var s=document.getElementById('sheetEl'); if(s) s.remove(); }

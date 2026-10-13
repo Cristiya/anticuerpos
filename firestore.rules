@@ -70,13 +70,26 @@ service cloud.firestore {
           && after().seats == before().seats
           && after().uids == before().uids
           && after().gameState is map && before().gameState is map
-          && after().gameState.diff(before().gameState).affectedKeys().hasOnly(['discard', 'gloveFor', 'handCounts', 'turn', 'turnCount'])
+          && after().gameState.diff(before().gameState).affectedKeys().hasOnly(['discard', 'gloveFor', 'handCounts', 'turn', 'turnCount', 'log'])
           && after().gameState.gloveFor.size() < before().gameState.gloveFor.size()
           && (after().gameState.turn == before().gameState.turn
               || (after().gameState.gloveFor.size() == 0
                   && after().gameState.turn == (before().gameState.turn + 1) % before().gameState.players.size()))
           && (me() in before().gameState.gloveFor
               || (isHost() && before().gameState.gloveFor.size() > 0));
+      }
+
+      // El anfitrion salta el turno de un jugador que no responde: solo avanza el turno una posicion.
+      function isHostSkip() {
+        return isHost()
+          && before().status == 'playing' && after().status == 'playing'
+          && after().seats == before().seats
+          && after().uids == before().uids
+          && after().gameState is map && before().gameState is map
+          && before().gameState.gloveFor.size() == 0
+          && after().gameState.diff(before().gameState).affectedKeys().hasOnly(['turn', 'turnCount', 'log'])
+          && after().gameState.turn == (before().gameState.turn + 1) % before().gameState.players.size()
+          && after().gameState.turnCount == before().gameState.turnCount + 1;
       }
 
       // Solo se puede abrir una sala concreta si se conoce su codigo; no se pueden listar.
@@ -94,7 +107,7 @@ service cloud.firestore {
         && after().seats[0].isBot == false;
 
       allow update: if signedIn() && roomShape()
-        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove() || isGloveResponse());
+        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove() || isGloveResponse() || isHostSkip());
 
       // Solo el anfitrion puede cerrar la sala, empezada o no.
       allow delete: if signedIn() && isHost();
