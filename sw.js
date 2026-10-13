@@ -1,4 +1,4 @@
-var CACHE = 'anticuerpos-v3';
+var CACHE = 'anticuerpos-v4';
 var ASSETS = [
   './',
   './index.html',
@@ -10,9 +10,20 @@ var ASSETS = [
   './icons/icon-512.png'
 ];
 
+/* Siempre se pide la versión fresca al servidor (cache:'no-cache' revalida y se salta los 10 min
+   de caché HTTP de GitHub Pages); la copia guardada solo se usa si no hay conexión. */
+function fresh(url){ return fetch(url, {cache:'no-cache'}); }
+
 self.addEventListener('install', function(e){
   e.waitUntil(
-    caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }).then(function(){ return self.skipWaiting(); })
+    caches.open(CACHE).then(function(c){
+      return Promise.all(ASSETS.map(function(url){
+        return fresh(url).then(function(resp){
+          if(!resp.ok) throw new Error('No se pudo guardar '+url);
+          return c.put(url, resp);
+        });
+      }));
+    }).then(function(){ return self.skipWaiting(); })
   );
 });
 
@@ -30,15 +41,16 @@ self.addEventListener('fetch', function(e){
   if(url.origin !== location.origin) return; // never intercept Firebase/network calls
 
   e.respondWith(
-    caches.match(e.request).then(function(cached){
-      var fetchPromise = fetch(e.request).then(function(resp){
-        if(resp && resp.status===200){
-          var copy = resp.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-        }
-        return resp;
-      }).catch(function(){ return cached; });
-      return cached || fetchPromise;
+    fresh(e.request.url).then(function(resp){
+      if(resp && resp.status===200){
+        var copy = resp.clone();
+        caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+      }
+      return resp;
+    }).catch(function(){
+      return caches.match(e.request).then(function(cached){
+        return cached || caches.match('./index.html');
+      });
     })
   );
 });
