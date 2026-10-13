@@ -2,24 +2,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rooms/{roomId} {
-      // Solo se puede leer una sala concreta por su codigo; no se pueden listar.
-      allow get: if true;
+
+      function signedIn() { return request.auth != null; }
+      function me() { return request.auth.uid; }
+      function before() { return resource.data; }
+      function after() { return request.resource.data; }
+      function isHost() { return me() == before().hostId; }
+
+      // La sala no cambia de anfitrion ni de fecha, y solo tiene estos campos.
+      function roomShape() {
+        return after().keys().hasOnly(['status', 'hostId', 'seats', 'uids', 'createdAt', 'gameState'])
+          && after().hostId == before().hostId
+          && after().createdAt == before().createdAt
+          && after().seats is list && after().seats.size() <= 5
+          && after().uids is list;
+      }
+
+      // Un jugador nuevo se sienta al final de la lista, con su propio uid.
+      function isJoining() {
+        return before().status == 'lobby' && after().status == 'lobby'
+          && !(me() in before().uids)
+          && before().seats.size() < 5
+          && after().seats.size() == before().seats.size() + 1
+          && after().seats.hasAll(before().seats)
+          && after().seats[before().seats.size()].clientId == me()
+          && after().seats[before().seats.size()].isBot == false
+          && after().uids == before().uids.concat([me()])
+          && !('gameState' in after());
+      }
+
+      // Un jugador que no es el anfitrion sale de la sala antes de empezar.
+      function isLeaving() {
+        return before().status == 'lobby' && after().status == 'lobby'
+          && !isHost()
+          && me() in before().uids
+          && after().uids == before().uids.removeAll([me()])
+          && after().seats.size() == before().seats.size() - 1
+          && before().seats.hasAll(after().seats)
+          && !('gameState' in after());
+      }
+
+      // El anfitrion gestiona la sala en el lobby (CPUs, expulsar, empezar).
+      function isHostInLobby() {
+        return isHost() && before().status == 'lobby'
+          && after().status in ['lobby', 'playing']
+          && (after().status == 'lobby' || after().gameState is map);
+      }
+
+      // Durante la partida solo escribe quien tiene el turno; el anfitrion mueve a las CPUs.
+      function isPlayerMove() {
+        return before().status == 'playing'
+          && after().status in ['playing', 'over']
+          && after().seats == before().seats
+          && after().uids == before().uids
+          && after().gameState is map
+          && after().gameState.players.size() == before().gameState.players.size()
+          && (
+            before().gameState.players[before().gameState.turn].id == me()
+            || (isHost() && before().gameState.players[before().gameState.turn].isBot == true)
+          );
+      }
+
+      // Solo se puede abrir una sala concreta si se conoce su codigo; no se pueden listar.
+      allow get: if signedIn();
       allow list: if false;
 
-      allow create: if roomId.matches('^[A-HJ-NP-Z2-9]{4}$')
-        && request.resource.data.keys().hasOnly(['status', 'hostId', 'seats', 'createdAt'])
-        && request.resource.data.status == 'lobby'
-        && request.resource.data.seats is list
-        && request.resource.data.seats.size() <= 5;
+      allow create: if signedIn()
+        && roomId.matches('^[A-HJ-NP-Z2-9]{4}$')
+        && after().keys().hasOnly(['status', 'hostId', 'seats', 'uids', 'createdAt'])
+        && after().status == 'lobby'
+        && after().hostId == me()
+        && after().uids == [me()]
+        && after().seats.size() == 1
+        && after().seats[0].clientId == me()
+        && after().seats[0].isBot == false;
 
-      allow update: if request.resource.data.keys().hasOnly(['status', 'hostId', 'seats', 'createdAt', 'gameState'])
-        && request.resource.data.hostId == resource.data.hostId
-        && request.resource.data.status in ['lobby', 'playing', 'over']
-        && request.resource.data.seats is list
-        && request.resource.data.seats.size() <= 5;
+      allow update: if signedIn() && roomShape()
+        && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove());
 
-      // Una partida en curso no se puede borrar.
-      allow delete: if resource.data.status in ['lobby', 'over'];
+      // Solo el anfitrion puede cerrar la sala, empezada o no.
+      allow delete: if signedIn() && isHost();
     }
   }
 }

@@ -633,7 +633,7 @@
       root.innerHTML='';
       clearTimeout(botTimer);
       clearSelection(); discardMode=false; discardMarks=[];
-      leaveOnlineRoomSilently();
+      leaveOnlineRoomSilently(true);
       state = null;
       goToSetup();
     });
@@ -655,7 +655,7 @@
       '</div></div>';
     document.getElementById('playAgain').addEventListener('click', function(){
       root.innerHTML='';
-      leaveOnlineRoomSilently();
+      leaveOnlineRoomSilently(true);
       goToSetup();
     });
   }
@@ -733,12 +733,20 @@
       return fbDb;
     }catch(e){ console.error(e); return null; }
   }
-  function generateClientId(){
-    var existing = localStorage.getItem('anticuerpos_client_id');
-    if(existing) return existing;
-    var id = 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-    localStorage.setItem('anticuerpos_client_id', id);
-    return id;
+  /* La identidad del jugador es su usuario anónimo de Firebase Auth: las reglas de
+     Firestore la usan para saber quién es el anfitrión, quién está sentado y de quién es el turno. */
+  var authPromise = null;
+  function ensureAuth(){
+    if(authPromise) return authPromise;
+    authPromise = new Promise(function(resolve, reject){
+      if(typeof firebase==='undefined' || !firebase.auth){ reject(new Error('Firebase Auth no está cargado')); return; }
+      var unsub = firebase.auth().onAuthStateChanged(function(user){
+        if(user){ unsub(); resolve(user.uid); }
+        else firebase.auth().signInAnonymously().catch(reject);
+      }, reject);
+    });
+    authPromise.catch(function(){ authPromise = null; });
+    return authPromise;
   }
   function generateRoomCode(){
     var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -752,14 +760,17 @@
     if(!db){ onlineHint('El online todavía no está configurado (falta firebase-config.js). Mira las instrucciones del proyecto.', true); return; }
     MY_NAME = sanitizeName(document.getElementById('nameInput').value);
     localStorage.setItem('anticuerpos_name', MY_NAME);
-    MY_ID = generateClientId();
     var code = generateRoomCode();
-    onlineRoomRef = db.collection('rooms').doc(code);
     onlineHint('Creando sala…');
-    onlineRoomRef.set({
-      status:'lobby', hostId:MY_ID,
-      seats:[{clientId:MY_ID, name:MY_NAME, isBot:false}],
-      createdAt: Date.now()
+    ensureAuth().then(function(uid){
+      MY_ID = uid;
+      onlineRoomRef = db.collection('rooms').doc(code);
+      return onlineRoomRef.set({
+        status:'lobby', hostId:MY_ID,
+        seats:[{clientId:MY_ID, name:MY_NAME, isBot:false}],
+        uids:[MY_ID],
+        createdAt: Date.now()
+      });
     }).then(function(){
       onlineRoomCode = code;
       isOnlineHost = true;
@@ -776,23 +787,25 @@
     if(code.length!==4){ onlineHint('Escribe el código de 4 letras/números.', true); return; }
     MY_NAME = sanitizeName(document.getElementById('nameInput').value);
     localStorage.setItem('anticuerpos_name', MY_NAME);
-    MY_ID = generateClientId();
     var ref = db.collection('rooms').doc(code);
     onlineHint('Entrando a la sala…');
-    db.runTransaction(function(tx){
-      return tx.get(ref).then(function(snap){
-        if(!snap.exists) throw new Error('NOT_FOUND');
-        var data = snap.data();
-        var seats = data.seats||[];
-        var already = seats.some(function(s){ return s.clientId===MY_ID; });
-        /* quien ya estaba sentado puede volver a entrar aunque la partida haya empezado */
-        if(data.status!=='lobby' && !already) throw new Error('STARTED');
-        if(!already){
-          if(seats.length>=5) throw new Error('FULL');
-          seats = seats.concat([{clientId:MY_ID, name:MY_NAME, isBot:false}]);
-          tx.update(ref, {seats:seats});
-        }
-        isOnlineHost = data.hostId===MY_ID;
+    ensureAuth().then(function(uid){
+      MY_ID = uid;
+      return db.runTransaction(function(tx){
+        return tx.get(ref).then(function(snap){
+          if(!snap.exists) throw new Error('NOT_FOUND');
+          var data = snap.data();
+          var seats = data.seats||[];
+          var already = seats.some(function(s){ return s.clientId===MY_ID; });
+          /* quien ya estaba sentado puede volver a entrar aunque la partida haya empezado */
+          if(data.status!=='lobby' && !already) throw new Error('STARTED');
+          if(!already){
+            if(seats.length>=5) throw new Error('FULL');
+            seats = seats.concat([{clientId:MY_ID, name:MY_NAME, isBot:false}]);
+            tx.update(ref, {seats:seats, uids:(data.uids||[]).concat([MY_ID])});
+          }
+          isOnlineHost = data.hostId===MY_ID;
+        });
       });
     }).then(function(){
       onlineRoomCode = code;
@@ -815,7 +828,10 @@
     showScreen('lobby');
     if(onlineUnsub) onlineUnsub();
     onlineUnsub = onlineRoomRef.onSnapshot(function(snap){
-      if(!snap.exists){ toast('La sala ha sido cerrada.'); leaveOnlineRoomSilently(); goToSetup(); return; }
+      if(!snap.exists){
+        document.getElementById('overlayRoot').innerHTML='';
+        toast('La sala ha sido cerrada.'); leaveOnlineRoomSilently(); goToSetup(); return;
+      }
       var data = snap.data();
       if(data.status==='lobby'){
         renderLobby(data);
@@ -865,7 +881,8 @@
       if(!snap.exists) return;
       var data = snap.data();
       var seats = (data.seats||[]).filter(function(s){ return s.clientId!==idToRemove; });
-      return onlineRoomRef.update({seats:seats});
+      var uids = (data.uids||[]).filter(function(u){ return u!==idToRemove; });
+      return onlineRoomRef.update({seats:seats, uids:uids});
     });
   });
   document.getElementById('btnAddBot').addEventListener('click', function(){
@@ -907,11 +924,12 @@
       ref.get().then(function(snap){
         if(!snap.exists) return;
         var data = snap.data();
+        /* si se va el anfitrión la sala se cierra, empezada o no: sin él nadie podría seguir */
+        if(data.hostId===MY_ID) return ref.delete();
         if(data.status!=='lobby') return;
         var seats=(data.seats||[]).filter(function(s){ return s.clientId!==MY_ID; });
-        /* si se va el anfitrión (o no queda nadie) la sala se cierra: si no, nadie podría empezar */
-        if(data.hostId===MY_ID || seats.every(function(s){ return s.isBot; })) return ref.delete();
-        return ref.update({seats:seats});
+        var uids=(data.uids||[]).filter(function(u){ return u!==MY_ID; });
+        return ref.update({seats:seats, uids:uids});
       }).catch(function(){});
     }
     localStorage.removeItem('anticuerpos_room');
@@ -956,12 +974,13 @@
     var db = ensureFirebase();
     if(!db) return;
     var savedRoom = localStorage.getItem('anticuerpos_room');
-    var savedId = localStorage.getItem('anticuerpos_client_id');
-    if(!savedRoom || !savedId) return;
-    MY_ID = savedId;
-    onlineRoomCode = savedRoom;
-    onlineRoomRef = db.collection('rooms').doc(savedRoom);
-    onlineRoomRef.get().then(function(snap){
+    if(!savedRoom) return;
+    ensureAuth().then(function(uid){
+      MY_ID = uid;
+      onlineRoomCode = savedRoom;
+      onlineRoomRef = db.collection('rooms').doc(savedRoom);
+      return onlineRoomRef.get();
+    }).then(function(snap){
       if(!snap.exists){ localStorage.removeItem('anticuerpos_room'); onlineRoomRef=null; return; }
       var data = snap.data();
       var roster = data.seats || (data.gameState && data.gameState.players) || [];
