@@ -40,7 +40,7 @@ if (-not $npm) { throw "No encuentro Node.js/npm. Instala Node LTS (winget insta
 $www = Join-Path $here 'www'
 if (Test-Path $www) { Remove-Item -Path $www -Recurse -Force }
 New-Item -ItemType Directory -Force -Path "$www\icons" | Out-Null
-foreach ($f in 'index.html','app.js','styles.css','manifest.webmanifest','firebase-config.js') { Copy-Item -Path (Join-Path $repo $f) -Destination (Join-Path $www $f) -Force }
+foreach ($f in 'index.html','i18n.js','app.js','styles.css','manifest.webmanifest','firebase-config.js') { Copy-Item -Path (Join-Path $repo $f) -Destination (Join-Path $www $f) -Force }
 foreach ($f in 'icon-192.png','icon-512.png') { Copy-Item -Path (Join-Path $repo "icons\$f") -Destination (Join-Path $www "icons\$f") -Force }
 
 # --- 2. dependencias y sincronizacion de Capacitor ---

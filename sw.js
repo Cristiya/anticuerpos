@@ -1,8 +1,9 @@
-var CACHE = 'anticuerpos-v4';
+var CACHE = 'anticuerpos-v5';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './i18n.js',
   './app.js',
   './firebase-config.js',
   './manifest.webmanifest',

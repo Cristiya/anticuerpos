@@ -3,16 +3,12 @@
 
   /* ================= CONFIG ================= */
   var COLORS = ['heart','brain','gut','bone'];
-  var COLOR_LABEL = {heart:'Corazón', brain:'Cerebro', gut:'Estómago', bone:'Hueso'};
   var HAND_SIZE = 3;
-  var TREATMENT_META = {
-    contagio:  {title:'Contagio', desc:'Pasa tus virus a órganos rivales sanos del mismo color.'},
-    transplante:{title:'Trasplante', desc:'Cambia uno de tus órganos por el de un rival (mismo color, no inmunes).'},
-    ladron:    {title:'Ladrón de Órganos', desc:'Roba un órgano sano de un rival que tú no tengas.'},
-    guante:    {title:'Guante de Látex', desc:'Todos los rivales descartan su mano entera.'},
-    error:     {title:'Error Médico', desc:'Intercambia tu cuerpo entero con el de un rival.'}
-  };
-  var BOT_NAMES = ['Dr. Patógeno','Dra. Antígena','Dr. Bacilo','Dra. Espora'];
+  /* Textos: ver i18n.js (T = traduce al idioma actual) */
+  function colorLabel(c){ return T('color.'+c); }
+  function treatmentTitle(kind){ return T('tr.'+kind+'.title'); }
+  function treatmentDesc(kind){ return T('tr.'+kind+'.desc'); }
+  function botNames(){ return T('bots').split('|'); }
 
   /* ================= ICONS ================= */
   function svgWrap(inner){ return '<svg viewBox="0 0 24 24" fill="none">'+inner+'</svg>'; }
@@ -64,7 +60,7 @@
   var state = null;
   var GAME_MODE = 'local';   // 'local' | 'online'
   var MY_ID = 'human';
-  var MY_NAME = 'Tú';
+  var MY_NAME = T('you');
   var winShown = false;
 
   function newPlayer(id, name, isBot){
@@ -82,7 +78,7 @@
     if(state.deck.length===0){
       if(state.discard.length===0) return false;
       state.deck = shuffle(state.discard.splice(0));
-      addLog('El mazo se recicla desde el descarte.');
+      addLog('deckRecycled');
     }
     player.hand.push(state.deck.pop());
     return true;
@@ -94,9 +90,21 @@
     var idx = player.hand.findIndex(function(c){ return c.id===card.id; });
     if(idx>-1) player.hand.splice(idx,1);
   }
-  function addLog(msg){
-    state.log.unshift(msg);
+  /* El registro se guarda como datos ({k:clave, p:parámetros}) y cada jugador lo ve en SU idioma.
+     Los parámetros: a = quien actúa, o = otro jugador, c = color del órgano (código), n = número. */
+  function addLog(key, params){
+    state.log.unshift({k:key, p:params||{}});
     if(state.log.length>40) state.log.length=40;
+  }
+  function logText(entry){
+    if(typeof entry==='string') return entry;   /* mensajes de versiones anteriores */
+    var p = {}; for(var k in (entry.p||{})) p[k] = entry.p[k];
+    if(p.c) p.c = colorLabel(p.c);
+    var key = 'log.'+entry.k;
+    /* si el que actúa (o el afectado) eres tú, se usa la frase en segunda persona */
+    if(p.ai && p.ai===MY_ID && hasT(key+'.you')) key += '.you';
+    else if(p.oi && p.oi===MY_ID && hasT(key+'.toyou')) key += '.toyou';
+    return T(key, p);
   }
 
   /* ================= RULE HELPERS ================= */
@@ -138,46 +146,46 @@
   }
   function getTreatmentOptions(actor, card){
     var opps = opponentsOf(actor);
-    if(card.kind==='guante') return [{label:'Todos los rivales descartan su mano', choice:{}}];
-    if(card.kind==='contagio') return contagionHasEffect(actor) ? [{label:'Contagiar tus virus a rivales sanos', choice:{}}] : [];
-    if(card.kind==='error') return opps.map(function(o){ return {label:'Intercambiar tu cuerpo entero con '+o.name, choice:{playerId:o.id}}; });
+    if(card.kind==='guante') return [{label:T('opt.guante'), choice:{}}];
+    if(card.kind==='contagio') return contagionHasEffect(actor) ? [{label:T('opt.contagio'), choice:{}}] : [];
+    if(card.kind==='error') return opps.map(function(o){ return {label:T('opt.error',{n:o.name}), choice:{playerId:o.id}}; });
     if(card.kind==='ladron'){
       var out=[];
       opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && o.board[c].status!=='infected' && o.board[c].status!=='immune' && !actor.board[c]) out.push({label:'Robar '+COLOR_LABEL[c]+' ('+statusLabel(o.board[c].status)+') de '+o.name, choice:{playerId:o.id, color:c}});
+        if(o.board[c] && o.board[c].status!=='infected' && o.board[c].status!=='immune' && !actor.board[c]) out.push({label:T('opt.ladron',{c:colorLabel(c), s:statusLabel(o.board[c].status), n:o.name}), choice:{playerId:o.id, color:c}});
       }); });
       return out;
     }
     if(card.kind==='transplante'){
       var out2=[];
       opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && actor.board[c] && o.board[c].status!=='immune' && actor.board[c].status!=='immune') out2.push({label:'Cambiar tu '+COLOR_LABEL[c]+' por el de '+o.name, choice:{playerId:o.id, color:c}});
+        if(o.board[c] && actor.board[c] && o.board[c].status!=='immune' && actor.board[c].status!=='immune') out2.push({label:T('opt.transplante',{c:colorLabel(c), n:o.name}), choice:{playerId:o.id, color:c}});
       }); });
       return out2;
     }
     return [];
   }
-  function statusLabel(s){ return s==='immune'?'inmune':(s==='infected'?'infectado':'sano'); }
+  function statusLabel(s){ return T('status.'+s); }
 
   /* ================= ACTIONS (mutate module `state`) ================= */
   function playCard(actor, card, target){
     removeFromHand(actor, card);
     if(card.type==='organ'){
       actor.board[target.slot] = {id: card.id, color: card.color==='wild'?target.slot:card.color, wild: card.color==='wild', status:'healthy'};
-      addLog(actor.name+' coloca un órgano en '+COLOR_LABEL[target.slot]+'.');
+      addLog('organ', {a:actor.name, ai:actor.id, c:target.slot});
     } else if(card.type==='medicine'){
       var s1 = actor.board[target.slot];
-      if(s1.status==='healthy'){ s1.status='immune'; addLog(actor.name+' inmuniza su '+COLOR_LABEL[target.slot]+'.'); }
-      else if(s1.status==='infected'){ s1.status='healthy'; addLog(actor.name+' cura su '+COLOR_LABEL[target.slot]+'.'); }
+      if(s1.status==='healthy'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); }
+      else if(s1.status==='infected'){ s1.status='healthy'; addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
-      if(s2.status==='healthy'){ s2.status='infected'; addLog(actor.name+' infecta el '+COLOR_LABEL[target.slot]+' de '+owner.name+'.'); }
+      if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
       else if(s2.status==='infected'){
         owner.board[target.slot]=null;
         /* el órgano destruido vuelve al descarte para que el mazo no se agote */
         if(s2.id!=null) state.discard.push({id:s2.id, type:'organ', color:s2.wild?'wild':s2.color});
-        addLog(actor.name+' destruye el '+COLOR_LABEL[target.slot]+' de '+owner.name+'!'); }
+        addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
     }
     /* un órgano jugado se queda en el tablero; solo vuelve al descarte si lo destruyen (más arriba) */
     if(card.type!=='organ') state.discard.push(card);
@@ -192,28 +200,28 @@
       } else {
         opponentsOf(actor).forEach(function(p){ state.discard.push.apply(state.discard, p.hand); p.hand=[]; });
       }
-      addLog(actor.name+' usa Guante de Látex: ¡todos descartan su mano!');
+      addLog('glove', {a:actor.name, ai:actor.id});
     } else if(card.kind==='contagio'){
       COLORS.forEach(function(c){
         var mine = actor.board[c];
         if(mine && mine.status==='infected'){
           var target = opponentsOf(actor).find(function(p){ var t=p.board[c]; return t && t.status==='healthy'; });
-          if(target){ target.board[c].status='infected'; mine.status='healthy'; addLog('Contagio: '+actor.name+' pasa el virus de '+COLOR_LABEL[c]+' a '+target.name+'.'); }
+          if(target){ target.board[c].status='infected'; mine.status='healthy'; addLog('contagion', {a:actor.name, ai:actor.id, c:c, o:target.name, oi:target.id}); }
         }
       });
     } else if(card.kind==='error'){
       var opp = state.players.find(function(p){ return p.id===choice.playerId; });
       var tmp = actor.board; actor.board = opp.board; opp.board = tmp;
-      addLog(actor.name+' usa Error Médico con '+opp.name+': ¡cuerpos intercambiados!');
+      addLog('error', {a:actor.name, ai:actor.id, o:opp.name, oi:opp.id});
     } else if(card.kind==='ladron'){
       var opp2 = state.players.find(function(p){ return p.id===choice.playerId; });
       actor.board[choice.color] = opp2.board[choice.color];
       opp2.board[choice.color] = null;
-      addLog(actor.name+' roba el '+COLOR_LABEL[choice.color]+' de '+opp2.name+'.');
+      addLog('steal', {a:actor.name, ai:actor.id, c:choice.color, o:opp2.name, oi:opp2.id});
     } else if(card.kind==='transplante'){
       var opp3 = state.players.find(function(p){ return p.id===choice.playerId; });
       var t = actor.board[choice.color]; actor.board[choice.color]=opp3.board[choice.color]; opp3.board[choice.color]=t;
-      addLog(actor.name+' hace un trasplante de '+COLOR_LABEL[choice.color]+' con '+opp3.name+'.');
+      addLog('transplant', {a:actor.name, ai:actor.id, c:choice.color, o:opp3.name, oi:opp3.id});
     }
   }
   function discardAndRedraw(player, cardIds){
@@ -222,7 +230,7 @@
       if(idx>-1){ state.discard.push(player.hand[idx]); player.hand.splice(idx,1); }
     });
     for(var i=0;i<cardIds.length;i++) drawOne(player);
-    addLog(player.name+' descarta '+cardIds.length+' carta(s) y roba de nuevo.');
+    addLog('discard', {a:player.name, ai:player.id, n:cardIds.length});
   }
   function checkWin(p){ return COLORS.every(function(c){ return p.board[c] && p.board[c].status!=='infected'; }); }
   function checkAnyWin(){
@@ -234,11 +242,11 @@
   function startGameLocal(numBots){
     GAME_MODE = 'local'; MY_ID = 'human'; winShown = false; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = [];
     botTimer = null;
-    var players = [newPlayer('human','Tú',false)];
-    for(var i=0;i<numBots;i++) players.push(newPlayer('bot'+i, BOT_NAMES[i], true));
+    var players = [newPlayer('human',T('you'),false)];
+    for(var i=0;i<numBots;i++) players.push(newPlayer('bot'+i, botNames()[i], true));
     state = { players: players, deck: buildDeck(), discard: [], turn: 0, turnCount:0, log: [], over: false, winnerId:null };
     players.forEach(function(p){ drawToHand(p); });
-    addLog('La partida comienza. ¡Suerte, doctor!');
+    addLog('start');
     showScreen('game');
     beginTurn();
   }
@@ -353,10 +361,10 @@
   function setStatus(msg){ var el=document.getElementById('statusLine'); if(el) el.innerHTML = msg; }
   function updateStatusLine(){
     if(!state) return;
-    if(state.over){ setStatus('Partida terminada.'); return; }
-    if(glovePending()){ setStatus('Guante de Látex: los rivales descartan su mano…'); return; }
-    if(isHumanTurn()) setStatus('Tu turno: toca una carta para jugarla, o descarta.');
-    else setStatus(currentPlayer().name+' está jugando…');
+    if(state.over){ setStatus(T('status.over')); return; }
+    if(glovePending()){ setStatus(T('status.glove')); return; }
+    if(isHumanTurn()) setStatus(T('status.mine'));
+    else setStatus(escapeHtml(T('status.other',{n:currentPlayer().name})));
   }
   var lastLogShown = null;
   var seenCardIds = {};
@@ -371,24 +379,24 @@
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function sanitizeName(raw){
     var cleaned = String(raw||'').replace(/[<>&"']/g,'').trim().slice(0,16);
-    return cleaned || 'Jugador';
+    return cleaned || T('player');
   }
 
   /* ================= RENDER ================= */
-  var TYPE_LABEL = {organ:'Órgano', virus:'Virus', medicine:'Medicina', treatment:'Acción'};
+  function typeLabel(type){ return T('type.'+type); }
   var SHIELD_ICON = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 2.8v5.6c0 4.6-3.1 8.4-7.5 9.6-4.4-1.2-7.5-5-7.5-9.6V5.8z" fill="currentColor"/><path d="M8.6 12.2l2.5 2.5 4.4-4.9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function cardColorVar(color){ return color==='wild' ? null : '--c-'+color; }
   function cardTitle(card){
-    if(card.type==='organ') return card.color==='wild' ? 'Órgano comodín' : COLOR_LABEL[card.color];
-    if(card.type==='virus') return 'Virus '+(card.color==='wild'?'comodín':COLOR_LABEL[card.color].toLowerCase());
-    if(card.type==='medicine') return 'Medicina '+(card.color==='wild'?'comodín':COLOR_LABEL[card.color].toLowerCase());
-    if(card.type==='treatment') return TREATMENT_META[card.kind].title;
+    if(card.type==='treatment') return treatmentTitle(card.kind);
+    if(card.type==='organ') return card.color==='wild' ? T('card.organWild') : colorLabel(card.color);
+    /* virus y medicina: "Virus corazón" / "Heart virus" (c = en minúsculas, C = tal cual) */
+    if(card.color==='wild') return T(card.type==='virus' ? 'card.virusWild' : 'card.medicineWild');
+    var lbl = colorLabel(card.color);
+    return T(card.type==='virus' ? 'card.virus' : 'card.medicine', {c:lbl.toLowerCase(), C:lbl});
   }
   function cardSub(card){
-    if(card.type==='organ') return 'Colócalo en tu cuerpo';
-    if(card.type==='virus') return 'Infecta un órgano rival';
-    if(card.type==='medicine') return 'Cura o inmuniza tu órgano';
-    if(card.type==='treatment') return TREATMENT_META[card.kind].desc;
+    if(card.type==='treatment') return treatmentDesc(card.kind);
+    return T('card.sub.'+card.type);
   }
   function cardIconHTML(card){
     if(card.type==='organ') return organIcon(card.color==='wild'?'heart':card.color);
@@ -407,7 +415,7 @@
     var v = card.type==='treatment' ? '--treatment' : cardColorVar(card.color);
     if(v) styleAttr = ' style="--card-color:var('+v+')"';
     return '<button class="'+cls.join(' ')+'" data-card-id="'+card.id+'"'+styleAttr+' aria-label="'+cardTitle(card)+'. '+cardSub(card)+'">'+
-      '<div class="card-head"><div class="card-top">'+cardIconHTML(card)+'</div><span class="card-kind">'+TYPE_LABEL[card.type]+'</span></div>'+
+      '<div class="card-head"><div class="card-top">'+cardIconHTML(card)+'</div><span class="card-kind">'+typeLabel(card.type)+'</span></div>'+
       '<div class="card-title">'+cardTitle(card)+'</div>'+
       '<div class="card-sub">'+cardSub(card)+'</div>'+
       '</button>';
@@ -423,10 +431,10 @@
     var badge = '';
     if(s && s.status==='infected') badge = '<div class="badge virus-badge">'+virusIcon()+'</div>';
     if(s && s.status==='immune') badge = '<div class="badge immune-badge">'+SHIELD_ICON+'</div>';
-    var label = COLOR_LABEL[color] + (s ? ' · '+statusLabel(s.status) : '');
+    var label = colorLabel(color) + (s ? ' · '+statusLabel(s.status) : '');
     return '<button class="'+cls.join(' ')+'" data-owner="'+owner.id+'" data-slot="'+color+'"'+styleAttr+' aria-label="'+escapeHtml(owner.name)+': '+label+'">'+
       '<div class="slot-icon">'+icon+'</div>'+badge+
-      '<div class="slot-label">'+COLOR_LABEL[color]+'</div>'+
+      '<div class="slot-label">'+colorLabel(color)+'</div>'+
       (s ? '<div class="slot-state">'+statusLabel(s.status)+'</div>' : '')+
       '</button>';
   }
@@ -444,7 +452,7 @@
   function renderTopbar(){
     var t = document.getElementById('turnIndicator');
     var p = currentPlayer();
-    t.innerHTML = state.over ? 'Partida terminada' : 'Turno de <b>'+escapeHtml(p.name)+'</b>';
+    t.innerHTML = state.over ? T('turn.over') : (p.id===MY_ID ? T('turn.you') : T('turn.of',{n:escapeHtml(p.name)}));
   }
   function renderOpponents(){
     var el = document.getElementById('opponents');
@@ -469,13 +477,14 @@
     document.getElementById('drawPile').innerHTML = DECK_ICON+'<div class="pile-count mono">'+state.deck.length+'</div>';
     document.getElementById('discardPile').innerHTML = '<div class="pile-count mono" style="font-size:.9rem;">🗑</div><div class="pile-count mono">'+state.discard.length+'</div>';
     var logEl = document.getElementById('log');
-    logEl.innerHTML = state.log.slice(0,8).map(function(m,i){ return '<div class="log-line'+(i===0?' latest':'')+'">'+escapeHtml(m)+'</div>'; }).join('');
+    logEl.innerHTML = state.log.slice(0,8).map(function(m,i){ return '<div class="log-line'+(i===0?' latest':'')+'">'+escapeHtml(logText(m))+'</div>'; }).join('');
     /* avisa de lo que han hecho los demás, para no perderse jugadas rápidas de los bots */
     var latest = state.log[0];
-    if(latest && latest!==lastLogShown){
-      var mine = me() && latest.indexOf(me().name)===0;
-      if(lastLogShown!==null && !mine && !state.over) toast(latest, 2600);
-      lastLogShown = latest;
+    var latestKey = latest ? (typeof latest==='string' ? latest : JSON.stringify(latest)) : null;
+    if(latest && latestKey!==lastLogShown){
+      var mine = typeof latest==='string' ? (me() && latest.indexOf(me().name)===0) : !!(latest.p && latest.p.ai===MY_ID);
+      if(lastLogShown!==null && !mine && !state.over) toast(logText(latest), 2600);
+      lastLogShown = latestKey;
     }
   }
   function renderMyBoard(){
@@ -499,13 +508,13 @@
   function renderActionBar(){
     var canAct = isHumanTurn();
     document.getElementById('btnDiscard').hidden = !canAct;
-    document.getElementById('btnDiscard').textContent = discardMode ? 'Confirmar descarte ('+discardMarks.length+')' : 'Descartar y robar';
+    document.getElementById('btnDiscard').textContent = discardMode ? T('btn.discardConfirm',{n:discardMarks.length}) : T('btn.discard');
     document.getElementById('btnCancel').hidden = !(canAct && (discardMode || selection.cardId));
     document.getElementById('btnPass').hidden = !(canAct && me().hand.length===0);
     var skip = skipTarget();
     var btnSkip = document.getElementById('btnSkip');
     btnSkip.hidden = !skip;
-    if(skip) btnSkip.textContent = skip.glove ? 'Sacar a '+skip.name+' del Guante' : 'Saltar el turno de '+skip.name;
+    if(skip) btnSkip.textContent = T(skip.glove ? 'btn.skipGlove' : 'btn.skipTurn', {n:skip.name});
   }
 
   /* ---- Jugador que no responde (solo el anfitrión, solo online) ----
@@ -532,7 +541,7 @@
   }
   function skipAbsent(){
     var t = skipTarget(); if(!t || !onlineRoomRef) return;
-    if(!window.confirm(t.glove ? '¿Sacar a '+t.name+' del Guante de Látex? Conservará su mano.' : '¿Saltar el turno de '+t.name+'?')) return;
+    if(!window.confirm(T(t.glove ? 'confirm.skipGlove' : 'confirm.skipTurn', {n:t.name}))) return;
     var ref = onlineRoomRef;
     fbDb.runTransaction(function(tx){
       return tx.get(ref).then(function(snap){
@@ -549,10 +558,10 @@
           upd['gameState.turn'] = (gs.turn+1)%n;
           upd['gameState.turnCount'] = (gs.turnCount||0)+1;
         }
-        upd['gameState.log'] = [t.name+(t.glove?' sale del Guante (sin respuesta).':' pierde el turno (sin respuesta).')].concat(gs.log||[]).slice(0,40);
+        upd['gameState.log'] = [{k:(t.glove?'skipGlove':'skipTurn'), p:{a:t.name, ai:t.id}}].concat(gs.log||[]).slice(0,40);
         tx.update(ref, upd);
       });
-    }).catch(function(err){ toast('No se pudo saltar el turno: '+err.message); });
+    }).catch(function(err){ toast(T('err.skip',{m:err.message})); });
   }
   document.getElementById('btnSkip').addEventListener('click', skipAbsent);
 
@@ -563,13 +572,13 @@
     var opts = getTreatmentOptions(me(), card);
     var sheet = document.createElement('div');
     sheet.className='sheet'; sheet.id='sheetEl';
-    var body = '<h3>'+TREATMENT_META[card.kind].title+'</h3>';
+    var body = '<h3>'+treatmentTitle(card.kind)+'</h3>';
     if(!opts.length){
-      body += '<div class="empty">No puedes usar esta carta ahora mismo.</div>';
+      body += '<div class="empty">'+T('sheet.empty')+'</div>';
     } else {
       body += opts.map(function(o,i){ return '<button class="opt" data-opt="'+i+'">'+escapeHtml(o.label)+'</button>'; }).join('');
     }
-    body += '<button class="cancel" id="sheetCancel">Cancelar</button>';
+    body += '<button class="cancel" id="sheetCancel">'+T('btn.cancel')+'</button>';
     sheet.innerHTML = body;
     document.getElementById('screenGame').appendChild(sheet);
     sheet.querySelectorAll('.opt').forEach(function(btn){
@@ -626,7 +635,7 @@
     } else {
       closeSheet();
       var targets = getValidTargets(me(), card);
-      if(targets.length===0){ toast('No hay objetivo válido para esta carta ahora mismo.'); clearSelection(); render(); return; }
+      if(targets.length===0){ toast(T('toast.noTarget')); clearSelection(); render(); return; }
       selection.targets = targets;
       render();
     }
@@ -659,7 +668,7 @@
   });
   document.getElementById('btnPass').addEventListener('click', function(){
     if(!isHumanTurn()) return;
-    addLog(me().name+' pasa el turno (mano vacía).');
+    addLog('pass', {a:me().name, ai:MY_ID});
     if(GAME_MODE==='online') commitPassOnline(); else advanceTurn();
   });
   function commitPassOnline(){
@@ -672,10 +681,10 @@
     if(!isHumanTurn()) return;
     if(!discardMode){
       discardMode = true; discardMarks=[]; clearSelection(); render();
-      setStatus('Elige de 1 a 3 cartas para descartar, luego confirma.');
+      setStatus(T('status.discardMode'));
       return;
     }
-    if(discardMarks.length===0){ toast('Selecciona al menos una carta.'); return; }
+    if(discardMarks.length===0){ toast(T('toast.pickOne')); return; }
     var ids = discardMarks.slice();
     discardMode=false; discardMarks=[];
     discardAndRedraw(me(), ids);
@@ -686,20 +695,20 @@
   function showHelp(){
     var root = document.getElementById('overlayRoot');
     root.innerHTML = '<div class="overlay" id="helpOverlay"><div class="modal">'+
-      '<h3>Reglas rápidas</h3>'+
+      '<h3>'+T('help.title')+'</h3>'+
       '<ul>'+
-      '<li><b>Órgano:</b> colócalo en un hueco vacío de tu color (o cualquiera si es comodín).</li>'+
-      '<li><b>Virus:</b> infecta un órgano rival sano de ese color; un segundo virus lo destruye. No afecta órganos inmunes.</li>'+
-      '<li><b>Medicina:</b> cura tu órgano infectado, o inmuniza uno sano. No afecta órganos ya inmunes.</li>'+
-      '<li><b>Tratamientos:</b> Contagio, Trasplante, Ladrón de Órganos, Guante de Látex y Error Médico alteran el tablero — lee cada carta.</li>'+
-      '<li>Ganas con <b>4 órganos de colores distintos</b>, todos sanos o inmunes (ninguno infectado).</li>'+
+      '<li>'+T('help.organ')+'</li>'+
+      '<li>'+T('help.virus')+'</li>'+
+      '<li>'+T('help.medicine')+'</li>'+
+      '<li>'+T('help.action')+'</li>'+
+      '<li>'+T('help.win')+'</li>'+
       '</ul>'+
-      '<button id="helpClose">Entendido</button>'+
-      '<button id="helpLeave" class="modal-secondary">Abandonar partida</button>'+
+      '<button id="helpClose">'+T('help.close')+'</button>'+
+      '<button id="helpLeave" class="modal-secondary">'+T('help.leave')+'</button>'+
       '</div></div>';
     document.getElementById('helpClose').addEventListener('click', function(){ root.innerHTML=''; });
     document.getElementById('helpLeave').addEventListener('click', function(){
-      if(!window.confirm('¿Abandonar la partida?')) return;
+      if(!window.confirm(T('help.leaveConfirm'))) return;
       root.innerHTML='';
       clearTimeout(botTimer);
       clearSelection(); discardMode=false; discardMarks=[];
@@ -716,12 +725,12 @@
     var tEl = document.getElementById('toastEl'); if(tEl) tEl.classList.remove('show');
     var root = document.getElementById('overlayRoot');
     var iWon = winner.id===MY_ID;
-    var msg = iWon ? '¡Has completado un cuerpo sano antes que nadie!' : escapeHtml(winner.name)+' ha completado su cuerpo primero.';
+    var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
     root.innerHTML = '<div class="overlay"><div class="modal win-modal">'+
       '<div class="confetti"><span></span><span></span><span></span><span></span></div>'+
-      '<h2>'+(iWon ? '¡Ganaste!' : escapeHtml(winner.name)+' gana') +'</h2>'+
+      '<h2>'+(iWon ? T('win.me') : escapeHtml(T('win.other',{n:winner.name}))) +'</h2>'+
       '<p>'+msg+'</p>'+
-      '<button id="playAgain">Jugar otra vez</button>'+
+      '<button id="playAgain">'+T('win.again')+'</button>'+
       '</div></div>';
     document.getElementById('playAgain').addEventListener('click', function(){
       root.innerHTML='';
@@ -743,6 +752,13 @@
     return '<div class="g" style="--gc:var(--c-'+c+')">'+organIcon(c)+'</div>';
   }).join('');
   document.getElementById('brandIcon').innerHTML = virusIcon();
+
+  /* idioma: textos estáticos del HTML y botón ES/EN */
+  applyStaticI18n();
+  document.getElementById('btnLang').addEventListener('click', function(){
+    setLang(getLang()==='es' ? 'en' : 'es');
+    MY_NAME = T('you');
+  });
 
   document.getElementById('modeSelect').addEventListener('click', function(e){
     var b = e.target.closest('button'); if(!b) return;
@@ -827,11 +843,11 @@
 
   function createOnlineRoom(){
     var db = ensureFirebase();
-    if(!db){ onlineHint('El online todavía no está configurado (falta firebase-config.js). Mira las instrucciones del proyecto.', true); return; }
+    if(!db){ onlineHint(T('online.notConfigured'), true); return; }
     MY_NAME = sanitizeName(document.getElementById('nameInput').value);
     localStorage.setItem('anticuerpos_name', MY_NAME);
     var code = generateRoomCode();
-    onlineHint('Creando sala…');
+    onlineHint(T('online.creating'));
     ensureAuth().then(function(uid){
       MY_ID = uid;
       onlineRoomRef = db.collection('rooms').doc(code);
@@ -849,18 +865,18 @@
       localStorage.setItem('anticuerpos_room', code);
       onlineHint('');
       enterLobby();
-    }).catch(function(err){ onlineHint('No se pudo crear la sala: '+err.message, true); });
+    }).catch(function(err){ onlineHint(T('online.createFail',{m:err.message}), true); });
   }
 
   function joinOnlineRoom(){
     var db = ensureFirebase();
-    if(!db){ onlineHint('El online todavía no está configurado (falta firebase-config.js). Mira las instrucciones del proyecto.', true); return; }
+    if(!db){ onlineHint(T('online.notConfigured'), true); return; }
     var code = (document.getElementById('codeInput').value||'').trim().toUpperCase();
-    if(code.length!==4){ onlineHint('Escribe el código de 4 letras/números.', true); return; }
+    if(code.length!==4){ onlineHint(T('online.codeLen'), true); return; }
     MY_NAME = sanitizeName(document.getElementById('nameInput').value);
     localStorage.setItem('anticuerpos_name', MY_NAME);
     var ref = db.collection('rooms').doc(code);
-    onlineHint('Entrando a la sala…');
+    onlineHint(T('online.joining'));
     ensureAuth().then(function(uid){
       MY_ID = uid;
       return db.runTransaction(function(tx){
@@ -887,10 +903,10 @@
       enterLobby();
     }).catch(function(err){
       var m = err && err.message;
-      var msg = m==='NOT_FOUND' ? 'No existe ninguna sala con ese código.'
-        : m==='STARTED' ? 'Esa partida ya ha empezado.'
-        : m==='FULL' ? 'La sala ya está llena (máximo 5).'
-        : 'No se pudo entrar a la sala: '+m;
+      var msg = m==='NOT_FOUND' ? T('online.notFound')
+        : m==='STARTED' ? T('online.started')
+        : m==='FULL' ? T('online.full')
+        : T('online.joinFail',{m:m});
       onlineHint(msg, true);
     });
   }
@@ -904,7 +920,7 @@
     onlineUnsub = onlineRoomRef.onSnapshot(function(snap){
       if(!snap.exists){
         document.getElementById('overlayRoot').innerHTML='';
-        toast('La sala ha sido cerrada.'); leaveOnlineRoomSilently(); goToSetup(); return;
+        toast(T('online.closed')); leaveOnlineRoomSilently(); goToSetup(); return;
       }
       var data = snap.data();
       trackHost(data);
@@ -929,7 +945,7 @@
         }
         onlineTurnHooks();
       }
-    }, function(err){ toast('Conexión perdida: '+err.message); });
+    }, function(err){ toast(T('online.lost',{m:err.message})); });
   }
 
   function renderLobby(data){
@@ -937,7 +953,7 @@
     isOnlineHost = data.hostId===MY_ID;
     var seats = data.seats||[];
     if(!seats.some(function(s){ return s.clientId===MY_ID; })){
-      toast('El anfitrión te ha sacado de la sala.');
+      toast(T('online.kicked'));
       leaveOnlineRoomSilently(); goToSetup();
       return;
     }
@@ -945,7 +961,7 @@
       var isHost = s.clientId===data.hostId;
       var canRemove = isOnlineHost && !isHost;
       return '<div class="seat-row">'+
-        '<span class="seat-name">'+escapeHtml(s.name)+(isHost?' <b class="host-badge">Anfitrión</b>':'')+(s.isBot?' <b class="bot-badge">CPU</b>':'')+'</span>'+
+        '<span class="seat-name">'+escapeHtml(s.name)+(isHost?' <b class="host-badge">'+T('badge.host')+'</b>':'')+(s.isBot?' <b class="bot-badge">'+T('badge.bot')+'</b>':'')+'</span>'+
         (canRemove? '<button class="seat-remove" data-id="'+s.clientId+'">✕</button>' : '')+
       '</div>';
     }).join('');
@@ -974,7 +990,8 @@
       var seats = data.seats||[];
       if(seats.length>=5) return;
       var botNum = seats.filter(function(s){ return s.isBot; }).length+1;
-      seats = seats.concat([{clientId:'bot_'+Date.now()+'_'+botNum, name:(BOT_NAMES[(botNum-1)%BOT_NAMES.length]||('CPU '+botNum)), isBot:true}]);
+      var names = botNames();
+      seats = seats.concat([{clientId:'bot_'+Date.now()+'_'+botNum, name:(names[(botNum-1)%names.length]||('CPU '+botNum)), isBot:true}]);
       return onlineRoomRef.update({seats:seats});
     });
   });
@@ -996,13 +1013,13 @@
         while(hands[p.id].length<HAND_SIZE){ if(deck.length===0) break; hands[p.id].push(deck.pop()); }
         handCounts[p.id] = hands[p.id].length;
       });
-      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:['La partida comienza. ¡Suerte, doctor!'], over:false, winnerId:null, handCounts:handCounts, gloveFor:[] };
+      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:[{k:'start', p:{}}], over:false, winnerId:null, handCounts:handCounts, gloveFor:[] };
       /* las manos van a documentos privados (hands/{uid}); en la sala solo queda cuántas cartas tiene cada uno */
       var batch = fbDb.batch();
       batch.update(onlineRoomRef, {status:'playing', gameState: gs});
       players.forEach(function(p){ batch.set(handsCol().doc(p.id), {cards: hands[p.id], expireAt: expiresIn(HAND_TTL_MS)}); });
       return batch.commit();
-    }).catch(function(err){ toast('No se pudo empezar la partida: '+err.message); });
+    }).catch(function(err){ toast(T('online.startFail',{m:err.message})); });
   });
 
   function leaveOnlineRoomSilently(removeFromSeats){
@@ -1059,10 +1076,10 @@
     var key = data.hostId+'|'+ping;
     if(key!==lastPingKey){ lastPingKey = key; hostChangeAt = Date.now(); }
     if(lastHostId!==null && data.hostId!==lastHostId){
-      if(data.hostId===MY_ID) toast('Ahora eres el anfitrión de la sala.', 3000);
+      if(data.hostId===MY_ID) toast(T('online.nowHost'), 3000);
       else {
         var h = (data.seats||[]).find(function(s){ return s.clientId===data.hostId; });
-        toast((h ? h.name : 'Otro jugador')+' es ahora el anfitrión.', 3000);
+        toast(T('online.hostIs',{n: h ? h.name : T('online.anotherPlayer')}), 3000);
       }
     }
     lastHostId = data.hostId;
@@ -1178,7 +1195,7 @@
     (handOwners||[]).forEach(function(p){
       batch.set(handsCol().doc(p.id), { cards: JSON.parse(JSON.stringify(p.hand||[])), expireAt: expiresIn(HAND_TTL_MS) });
     });
-    batch.commit().catch(function(err){ toast('No se pudo sincronizar: '+err.message); if(onFail) onFail(); });
+    batch.commit().catch(function(err){ toast(T('online.syncFail',{m:err.message})); if(onFail) onFail(); });
   }
 
   /* Guante de Látex: quien lo sufre descarta su mano (el anfitrión lo hace por las CPUs) */

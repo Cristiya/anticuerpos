@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Política de privacidad · Anticuerpos</title>
+<title>Política de privacidad · Privacy policy · Anticuerpos</title>
 <meta name="theme-color" content="#0E8574">
 <style>
   :root{--bg:#F2F6F3;--surface:#fff;--ink:#16262A;--dim:#5C716D;--line:#D2E0D8;--accent:#0E8574}
@@ -15,10 +15,17 @@
   p,li{color:var(--ink)} .dim{color:var(--dim);font-size:.9rem}
   ul{padding-left:20px} a{color:var(--accent)}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .langs{display:flex;gap:10px;margin:0 0 18px}
+  .langs a{padding:6px 14px;border:1px solid var(--line);border-radius:999px;text-decoration:none;font-weight:600;font-size:.9rem;background:var(--surface)}
+  hr{border:0;border-top:1px solid var(--line);margin:48px 0 8px}
 </style>
 </head>
 <body>
 <main>
+  <nav class="langs"><a href="#es">Español</a><a href="#en">English</a></nav>
+
+  <!-- ====================== ESPAÑOL ====================== -->
+  <section id="es" lang="es">
   <h1>Política de privacidad</h1>
   <p class="dim">Aplicación «Anticuerpos» · Última actualización: 15 de octubre de 2026</p>
 
@@ -41,6 +48,7 @@
   <p>Los datos se guardan en Cloud Firestore, en la región de la Unión Europea (eur3). La sala y las manos se borran cuando el anfitrión
   cierra la sala o abandona la partida. Si una sala se abandona sin cerrarse, se elimina manualmente de forma periódica.
   Las manos de cada jugador solo son legibles por su propietario.</p>
+  <p>En tu dispositivo se guardan, solo en local, tu nombre de jugador, el idioma elegido y el código de la última sala (para poder volver a ella).</p>
 
   <h2>Recursos que se cargan desde servidores de Google</h2>
   <p>Al abrir la aplicación se descargan las tipografías (Google Fonts) y las librerías de Firebase desde servidores de Google.
@@ -64,6 +72,59 @@
   <p class="card">Contacto: abre una incidencia en
   <a href="https://github.com/Cristiya/anticuerpos/issues">github.com/Cristiya/anticuerpos/issues</a>
   (se necesita una cuenta gratuita de GitHub). Responsable: Cristiya.</p>
+  </section>
+
+  <hr>
+
+  <!-- ====================== ENGLISH ====================== -->
+  <section id="en" lang="en">
+  <h1>Privacy policy</h1>
+  <p class="dim">“Anticuerpos” app · Last updated: October 15, 2026</p>
+
+  <p>Anticuerpos is a mobile card game. This page explains what data the app processes and why.
+  In short: there are no accounts, no advertising and no tracking, and only what is needed to play online is stored.</p>
+
+  <h2>“This device” mode (against bots)</h2>
+  <p>The game is played entirely on your device. No data is sent to our servers.</p>
+
+  <h2>Online mode</h2>
+  <p>To play with other people the app uses Firebase services (Google). This data is processed:</p>
+  <ul>
+    <li><b>Anonymous Firebase Authentication identifier.</b> Created automatically, with no email or password, so the game knows who each player is inside a room.</li>
+    <li><b>Player name</b> that you type (up to 16 characters). The other people in your room can see it.</li>
+    <li><b>Game state:</b> room code, players, cards, board and turns.</li>
+  </ul>
+  <p>The app does not ask for or collect contact details, location, contacts, photos, microphone, camera or advertising identifiers.</p>
+
+  <h2>Where it is stored and for how long</h2>
+  <p>Data is stored in Cloud Firestore, in the European Union region (eur3). The room and the hands are deleted when the host closes the room
+  or leaves the game. If a room is abandoned without being closed, it is removed manually on a regular basis.
+  Each player’s hand can only be read by its owner.</p>
+  <p>On your device, only locally, the app keeps your player name, the language you chose and the code of your last room (so you can return to it).</p>
+
+  <h2>Resources loaded from Google servers</h2>
+  <p>When the app opens it downloads fonts (Google Fonts) and the Firebase libraries from Google servers.
+  As with any download over the Internet, Google may receive your device’s IP address and technical connection data.
+  This also happens in “This device” mode. The app does not include any advertising or analytics SDK.</p>
+
+  <h2>Who it is shared with</h2>
+  <p>With no one beyond the other players in your room (name and game state) and the infrastructure provider, Google
+  (Firebase), which acts as a data processor. We do not sell or give data to third parties and we do not use it for advertising.</p>
+
+  <h2>Your rights</h2>
+  <p>You can ask for access, correction or deletion of your data by opening an issue on the contact page below. Because the identifier is anonymous,
+  to locate your data we will need the room code and the approximate date of the game. You can also delete the local data by
+  uninstalling the app.</p>
+
+  <h2>Children</h2>
+  <p>The app is not aimed at children under 13 and does not knowingly collect data from them. It has no chat, no purchases and no external links.</p>
+
+  <h2>Changes and contact</h2>
+  <p>If this policy changes, it will be published here with a new update date.</p>
+  <p class="card">Contact: open an issue at
+  <a href="https://github.com/Cristiya/anticuerpos/issues">github.com/Cristiya/anticuerpos/issues</a>
+  (a free GitHub account is required). Controller: Cristiya.</p>
+  </section>
 </main>
 </body>
 </html>

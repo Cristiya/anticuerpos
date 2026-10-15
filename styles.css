@@ -37,6 +37,9 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 
 /* ---------- Setup / Lobby shared ---------- */
 .setup, .lobby{padding:28px 24px calc(24px + env(safe-area-inset-bottom));justify-content:center;gap:18px;text-align:center;}
+.setup{position:relative;}
+.lang-toggle{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;min-width:44px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-dim);font-weight:700;font-size:.78rem;letter-spacing:.06em;text-align:center;}
+.lang-toggle:active{transform:scale(.96);}
 .setup .glyphs{display:flex;justify-content:center;gap:10px;margin-bottom:4px;}
 .setup .glyphs .g{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--gc) 16%, transparent);color:var(--gc);}
 .setup .glyphs .g svg{width:24px;height:24px;}

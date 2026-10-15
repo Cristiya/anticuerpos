@@ -21,50 +21,51 @@
 
   <!-- ================= SETUP SCREEN ================= -->
   <section class="screen setup" id="screenSetup">
+    <button class="lang-toggle" id="btnLang" data-i18n-aria="lang.switch" aria-label="Cambiar idioma">EN</button>
     <div class="glyphs" id="setupGlyphs"></div>
     <h1>Anticuerpos</h1>
-    <p class="tag">Construye un cuerpo sano con 4 órganos de colores distintos antes que tus rivales. Infecta con virus, cúrate con medicina.</p>
+    <p class="tag" data-i18n="setup.tag">Construye un cuerpo sano con 4 órganos de colores distintos antes que tus rivales. Infecta con virus, cúrate con medicina.</p>
 
     <div class="rules-card">
-      <h3>Cómo se gana</h3>
+      <h3 data-i18n="rules.title">Cómo se gana</h3>
       <ul>
-        <li>Coloca <b>órganos</b> de 4 colores distintos frente a ti.</li>
-        <li>Lanza <b>virus</b> a un órgano rival del mismo color para infectarlo; un segundo virus lo destruye.</li>
-        <li>Usa <b>medicina</b> en tu propio órgano para curarlo o inmunizarlo.</li>
-        <li>Las cartas de <b>tratamiento</b> alteran el tablero: robos, contagios, trueques.</li>
-        <li>Gana quien complete su cuerpo con 4 órganos sanos o inmunes.</li>
+        <li data-i18n-html="rules.1">Coloca <b>órganos</b> de 4 colores distintos frente a ti.</li>
+        <li data-i18n-html="rules.2">Lanza <b>virus</b> a un órgano rival del mismo color para infectarlo; un segundo virus lo destruye.</li>
+        <li data-i18n-html="rules.3">Usa <b>medicina</b> en tu propio órgano para curarlo o inmunizarlo.</li>
+        <li data-i18n-html="rules.4">Las cartas de <b>acción</b> alteran el tablero: robos, contagios, trueques.</li>
+        <li data-i18n="rules.5">Gana quien complete su cuerpo con 4 órganos sanos o inmunes.</li>
       </ul>
     </div>
 
     <div>
-      <div class="field-label" style="margin-bottom:8px;">Modo de juego</div>
+      <div class="field-label" style="margin-bottom:8px;" data-i18n="mode.label">Modo de juego</div>
       <div class="segmented" id="modeSelect">
-        <button data-mode="local" class="active">Este dispositivo<small>Hasta 4 bots</small></button>
-        <button data-mode="online">Online<small>Con amigos</small></button>
+        <button data-mode="local" class="active"><span data-i18n="mode.local">Este dispositivo</span><small data-i18n="mode.local.sub">Hasta 4 bots</small></button>
+        <button data-mode="online"><span data-i18n="mode.online">Online</span><small data-i18n="mode.online.sub">Con amigos</small></button>
       </div>
     </div>
 
     <div id="localOptions">
-      <div class="field-label" style="margin-bottom:8px;">Rivales (bots)</div>
+      <div class="field-label" style="margin-bottom:8px;" data-i18n="opp.label">Rivales (bots)</div>
       <div class="segmented" id="oppSelect">
-        <button data-n="1" class="active">1<small>Duelo</small></button>
-        <button data-n="2">2<small>Trío</small></button>
-        <button data-n="3">3<small>Caos</small></button>
-        <button data-n="4">4<small>Máximo</small></button>
+        <button data-n="1" class="active">1<small data-i18n="opp.1">Duelo</small></button>
+        <button data-n="2">2<small data-i18n="opp.2">Trío</small></button>
+        <button data-n="3">3<small data-i18n="opp.3">Caos</small></button>
+        <button data-n="4">4<small data-i18n="opp.4">Máximo</small></button>
       </div>
-      <button class="btn-primary" id="btnStartLocal" style="width:100%;margin-top:16px;">Empezar partida</button>
+      <button class="btn-primary" id="btnStartLocal" style="width:100%;margin-top:16px;" data-i18n="btn.start">Empezar partida</button>
     </div>
 
     <div id="onlineOptions" hidden>
-      <div class="field-label" style="margin-bottom:8px;">Tu nombre</div>
-      <input class="text-input" id="nameInput" maxlength="16" placeholder="Ej. Marta" autocomplete="off">
+      <div class="field-label" style="margin-bottom:8px;" data-i18n="name.label">Tu nombre</div>
+      <input class="text-input" id="nameInput" maxlength="16" placeholder="Ej. Marta" data-i18n-ph="name.ph" autocomplete="off">
       <div class="online-actions">
-        <button class="btn-primary" id="btnCreateRoom">Crear sala</button>
-        <button class="btn-secondary" id="btnShowJoin">Unirse a una sala</button>
+        <button class="btn-primary" id="btnCreateRoom" data-i18n="btn.create">Crear sala</button>
+        <button class="btn-secondary" id="btnShowJoin" data-i18n="btn.join">Unirse a una sala</button>
       </div>
       <div id="joinRow" hidden style="margin-top:10px;">
-        <input class="text-input code-input" id="codeInput" maxlength="4" placeholder="CÓDIGO" autocomplete="off">
-        <button class="btn-primary" id="btnJoinRoom" style="width:100%;">Entrar a la sala</button>
+        <input class="text-input code-input" id="codeInput" maxlength="4" placeholder="CÓDIGO" data-i18n-ph="code.ph" autocomplete="off">
+        <button class="btn-primary" id="btnJoinRoom" style="width:100%;" data-i18n="btn.enter">Entrar a la sala</button>
       </div>
       <p class="hint" id="onlineHint"></p>
     </div>
@@ -73,16 +74,16 @@
   <!-- ================= LOBBY SCREEN ================= -->
   <section class="screen lobby" id="screenLobby" hidden>
     <div class="lobby-inner">
-      <div class="field-label">Código de sala</div>
+      <div class="field-label" data-i18n="lobby.code">Código de sala</div>
       <div class="room-code mono" id="roomCodeDisplay">····</div>
-      <p class="hint">Comparte este código con tus amigos para que se unan desde su móvil.</p>
+      <p class="hint" data-i18n="lobby.share">Comparte este código con tus amigos para que se unan desde su móvil.</p>
       <div class="seats" id="seatsList"></div>
       <div class="lobby-actions" id="lobbyHostActions">
-        <button class="btn-secondary" id="btnAddBot">Añadir CPU</button>
-        <button class="btn-primary" id="btnStartOnline">Empezar partida</button>
+        <button class="btn-secondary" id="btnAddBot" data-i18n="btn.addBot">Añadir CPU</button>
+        <button class="btn-primary" id="btnStartOnline" data-i18n="btn.start">Empezar partida</button>
       </div>
-      <p class="hint" id="lobbyWaitingMsg" hidden>Esperando a que el anfitrión empiece la partida…</p>
-      <button class="btn-text" id="btnLeaveLobby">Salir de la sala</button>
+      <p class="hint" id="lobbyWaitingMsg" hidden data-i18n="lobby.waiting">Esperando a que el anfitrión empiece la partida…</p>
+      <button class="btn-text" id="btnLeaveLobby" data-i18n="btn.leaveLobby">Salir de la sala</button>
     </div>
   </section>
 
@@ -90,8 +91,8 @@
   <section class="screen game" id="screenGame" hidden>
     <header class="topbar">
       <div class="brand"><span class="dot" id="brandIcon"></span> Anticuerpos</div>
-      <div class="turn-indicator mono" id="turnIndicator">Turno de <b>—</b></div>
-      <button class="helpbtn" id="btnHelp" aria-label="Reglas y opciones">?</button>
+      <div class="turn-indicator mono" id="turnIndicator">—</div>
+      <button class="helpbtn" id="btnHelp" data-i18n-aria="help.aria" aria-label="Reglas y opciones">?</button>
     </header>
 
     <div class="opponents" id="opponents"></div>
@@ -103,18 +104,18 @@
     </div>
 
     <div class="myboard">
-      <div class="rowlabel">Tu cuerpo</div>
+      <div class="rowlabel" data-i18n="myBody">Tu cuerpo</div>
       <div class="myslots" id="myBoard"></div>
     </div>
 
     <div class="handbar">
-      <div class="status" id="statusLine" aria-live="polite">Cargando…</div>
+      <div class="status" id="statusLine" aria-live="polite" data-i18n="loading">Cargando…</div>
       <div class="hand" id="hand"></div>
       <div class="actions" id="actionBar">
-        <button id="btnDiscard">Descartar y robar</button>
-        <button id="btnPass" hidden>Pasar turno</button>
+        <button id="btnDiscard" data-i18n="btn.discard">Descartar y robar</button>
+        <button id="btnPass" hidden data-i18n="btn.pass">Pasar turno</button>
         <button class="danger" id="btnSkip" hidden></button>
-        <button class="danger" id="btnCancel" hidden>Cancelar</button>
+        <button class="danger" id="btnCancel" hidden data-i18n="btn.cancel">Cancelar</button>
       </div>
     </div>
   </section>
@@ -126,6 +127,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 <script>
   if('serviceWorker' in navigator){

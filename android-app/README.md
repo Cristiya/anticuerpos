@@ -81,3 +81,5 @@ El icono es el virus de la marca en blanco sobre el verde `#0E8574`.
 
 - Las tipografías (Google Fonts) y las librerías de Firebase se descargan de servidores de Google al abrir la app; está recogido en la [política de privacidad](../privacidad.html).
 - Política de privacidad pública: https://cristiya.github.io/anticuerpos/privacidad.html
+
+- La app está en español e inglés (i18n.js): se elige sola según el idioma del móvil y hay un botón ES/EN en la pantalla de inicio. Los textos de la ficha de Google Play están en store/textos-ficha-play.md.
