@@ -1,0 +1,5 @@
+node_modules/
+# copia de la web que genera build.ps1
+www/
+# AAB y APK compilados
+salida/

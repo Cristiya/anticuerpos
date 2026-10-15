@@ -1,0 +1,7 @@
+﻿{
+  "appId": "com.cristiya.anticuerpos",
+  "appName": "Anticuerpos",
+  "webDir": "www",
+  "android": { "allowMixedContent": false, "adjustMarginsForEdgeToEdge": "force" },
+  "server": { "androidScheme": "https" }
+}

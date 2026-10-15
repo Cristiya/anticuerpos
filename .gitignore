@@ -1,0 +1,10 @@
+# Claves de firma y contrasenas: NUNCA al repositorio
+*.jks
+*.keystore
+keystore.properties
+local.properties
+LEEME-clave.txt
+keystore/
+
+# Configuracion local de las herramientas de pruebas
+.claude/
