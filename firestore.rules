@@ -11,10 +11,17 @@ service cloud.firestore {
 
       function hostSame() { return after().hostId == before().hostId; }
       function pingSame() { return after().get('hostPing', null) == before().get('hostPing', null); }
+      function expireSame() { return after().get('expireAt', null) == before().get('expireAt', null); }
+
+      // expireAt es el TTL con el que Firestore borra salas abandonadas: entre 5 y 7 h desde ahora.
+      function expireOk() {
+        return after().expireAt > request.time + duration.value(5, 'h')
+          && after().expireAt < request.time + duration.value(7, 'h');
+      }
 
       // La sala no cambia de fecha y solo tiene estos campos.
       function roomShape() {
-        return after().keys().hasOnly(['status', 'hostId', 'hostPing', 'seats', 'uids', 'createdAt', 'gameState'])
+        return after().keys().hasOnly(['status', 'hostId', 'hostPing', 'expireAt', 'seats', 'uids', 'createdAt', 'gameState'])
           && after().createdAt == before().createdAt
           && after().seats is list && after().seats.size() <= 5
           && after().uids is list;
@@ -94,11 +101,12 @@ service cloud.firestore {
           && after().gameState.turnCount == before().gameState.turnCount + 1;
       }
 
-      // El anfitrion marca que sigue vivo (hostPing = hora del servidor, cada 15 s).
+      // El anfitrion marca que sigue vivo (hostPing = hora del servidor, cada 15 s) y renueva el TTL.
       function isHeartbeat() {
         return isHost() && hostSame()
-          && after().diff(before()).affectedKeys().hasOnly(['hostPing'])
-          && after().hostPing == request.time;
+          && after().diff(before()).affectedKeys().hasOnly(['hostPing', 'expireAt'])
+          && after().hostPing == request.time
+          && (expireSame() || expireOk());
       }
 
       // El anfitrion cede el cargo a otro jugador humano de la sala (al abandonar).
@@ -131,10 +139,11 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && roomId.matches('^[A-HJ-NP-Z2-9]{4}$')
-        && after().keys().hasOnly(['status', 'hostId', 'hostPing', 'seats', 'uids', 'createdAt'])
+        && after().keys().hasOnly(['status', 'hostId', 'hostPing', 'expireAt', 'seats', 'uids', 'createdAt'])
         && after().status == 'lobby'
         && after().hostId == me()
         && (!('hostPing' in after()) || after().hostPing == request.time)
+        && (!('expireAt' in after()) || expireOk())
         && after().uids == [me()]
         && after().seats.size() == 1
         && after().seats[0].clientId == me()
@@ -143,7 +152,7 @@ service cloud.firestore {
       allow update: if signedIn() && roomShape()
         && ((hostSame()
               && (isHeartbeat()
-                  || (pingSame()
+                  || (pingSame() && expireSame()
                       && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove()
                           || isGloveResponse() || isHostSkip()))))
             || isHostHandover()
@@ -164,9 +173,12 @@ service cloud.firestore {
           && (request.auth.uid == ownerId || (isBotHand() && isRoomHost()));
 
         allow create, update: if signedIn()
-          && request.resource.data.keys().hasOnly(['cards'])
+          && request.resource.data.keys().hasOnly(['cards', 'expireAt'])
           && request.resource.data.cards is list
           && request.resource.data.cards.size() <= 3
+          && (!('expireAt' in request.resource.data)
+              || (request.resource.data.expireAt > request.time
+                  && request.resource.data.expireAt < request.time + duration.value(1, 'd')))
           && (
             // reparto inicial, lo hace el anfitrion al empezar
             (isRoomHost() && room().status == 'lobby')

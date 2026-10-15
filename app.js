@@ -838,6 +838,7 @@
       return onlineRoomRef.set({
         status:'lobby', hostId:MY_ID,
         hostPing: firebase.firestore.FieldValue.serverTimestamp(),
+        expireAt: expiresIn(ROOM_TTL_MS),
         seats:[{clientId:MY_ID, name:MY_NAME, isBot:false}],
         uids:[MY_ID],
         createdAt: Date.now()
@@ -999,7 +1000,7 @@
       /* las manos van a documentos privados (hands/{uid}); en la sala solo queda cuántas cartas tiene cada uno */
       var batch = fbDb.batch();
       batch.update(onlineRoomRef, {status:'playing', gameState: gs});
-      players.forEach(function(p){ batch.set(handsCol().doc(p.id), {cards: hands[p.id]}); });
+      players.forEach(function(p){ batch.set(handsCol().doc(p.id), {cards: hands[p.id], expireAt: expiresIn(HAND_TTL_MS)}); });
       return batch.commit();
     }).catch(function(err){ toast('No se pudo empezar la partida: '+err.message); });
   });
@@ -1046,6 +1047,11 @@
      siguientes esperan 10 s más cada uno) se hace anfitrión con una transacción; las reglas de Firestore
      solo lo permiten si en el servidor han pasado más de 40 s desde el último latido. */
   var HEARTBEAT_MS = 15000, HOST_TIMEOUT_MS = 45000;
+  /* Limpieza de salas abandonadas: cada documento lleva una fecha expireAt que Firestore usa como TTL
+     (política "Time-to-live" en la consola, para rooms y hands). El latido del anfitrión renueva la de
+     la sala y cada jugada renueva la de las manos; si nadie los renueva, Firestore los borra solo. */
+  var ROOM_TTL_MS = 6*3600*1000, HAND_TTL_MS = 12*3600*1000;
+  function expiresIn(ms){ return firebase.firestore.Timestamp.fromMillis(Date.now()+ms); }
   var hostTimer = null, lastBeatAt = 0, lastRoom = null, lastHostId = null, lastPingKey = null, hostChangeAt = 0, takingOver = false;
 
   function trackHost(data){
@@ -1071,7 +1077,7 @@
       if(isOnlineHost){
         if(lastRoom.status!=='over' && Date.now()-lastBeatAt>=HEARTBEAT_MS){
           lastBeatAt = Date.now();
-          onlineRoomRef.update({hostPing: firebase.firestore.FieldValue.serverTimestamp()}).catch(function(){});
+          onlineRoomRef.update({hostPing: firebase.firestore.FieldValue.serverTimestamp(), expireAt: expiresIn(ROOM_TTL_MS)}).catch(function(){});
         }
         return;
       }
@@ -1170,7 +1176,7 @@
     var batch = fbDb.batch();
     batch.update(onlineRoomRef, { gameState: publicState(), status: state.over?'over':'playing' });
     (handOwners||[]).forEach(function(p){
-      batch.set(handsCol().doc(p.id), { cards: JSON.parse(JSON.stringify(p.hand||[])) });
+      batch.set(handsCol().doc(p.id), { cards: JSON.parse(JSON.stringify(p.hand||[])), expireAt: expiresIn(HAND_TTL_MS) });
     });
     batch.commit().catch(function(err){ toast('No se pudo sincronizar: '+err.message); if(onFail) onFail(); });
   }
@@ -1194,7 +1200,7 @@
           upd['gameState.turnCount'] = (gs.turnCount||0)+1;
         }
         tx.update(ref, upd);
-        tx.set(handRef, {cards: []});
+        tx.set(handRef, {cards: [], expireAt: expiresIn(HAND_TTL_MS)});
       });
     }).then(function(){ gloveBusy[id] = false; }, function(err){ gloveBusy[id] = false; console.warn('guante', err); });
   }
