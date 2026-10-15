@@ -12,6 +12,14 @@ $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $repo = Split-Path -Parent $here
 
+# Ejecuta un programa externo. En Windows PowerShell 5.1 los avisos que npm y Gradle escriben por la salida
+# de errores se convertirian en errores fatales; aqui solo cuenta el codigo de salida.
+function Invoke-Tool([string]$Name, [scriptblock]$Command) {
+  $old = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try { & $Command 2>&1 | ForEach-Object { "$_" } } finally { $ErrorActionPreference = $old }
+  if ($LASTEXITCODE -ne 0) { throw "$Name fallo (codigo $LASTEXITCODE)" }
+}
+
 # --- comprobaciones previas ---
 if ($here.Length -gt 90) {
   throw "La ruta '$here' es demasiado larga y Gradle fallara en Windows. Clona el repo en una ruta corta (p. ej. C:\dev\anticuerpos)."
@@ -38,9 +46,8 @@ foreach ($f in 'icon-192.png','icon-512.png') { Copy-Item -Path (Join-Path $repo
 # --- 2. dependencias y sincronizacion de Capacitor ---
 Push-Location $here
 try {
-  if (-not (Test-Path (Join-Path $here 'node_modules'))) { npm ci }
-  npx cap sync android
-  if ($LASTEXITCODE -ne 0) { throw "cap sync fallo" }
+  if (-not (Test-Path (Join-Path $here 'node_modules'))) { Invoke-Tool 'npm ci' { npm ci } }
+  Invoke-Tool 'cap sync' { npx cap sync android }
 
   # --- 3. Gradle ---
   Set-Content -Path (Join-Path $here 'android\local.properties') -Value ("sdk.dir=" + ($AndroidSdk -replace '\\','\\' -replace ':','\:')) -Encoding ascii
@@ -48,8 +55,7 @@ try {
   if (-not $signed) { Write-Warning "No hay android\keystore.properties: el release saldra SIN FIRMAR y Google Play no lo aceptara. Mira el README." }
   Push-Location (Join-Path $here 'android')
   try {
-    .\gradlew.bat --no-daemon bundleRelease assembleRelease
-    if ($LASTEXITCODE -ne 0) { throw "Gradle fallo (codigo $LASTEXITCODE)" }
+    Invoke-Tool 'Gradle' { .\gradlew.bat --no-daemon bundleRelease assembleRelease }
   } finally { Pop-Location }
 
   # --- 4. recoger los artefactos ---
