@@ -54,6 +54,12 @@
         <button data-n="3">3<small data-i18n="opp.3">Caos</small></button>
         <button data-n="4">4<small data-i18n="opp.4">Máximo</small></button>
       </div>
+      <div class="field-label" style="margin:14px 0 8px;" data-i18n="diff.label">Dificultad</div>
+      <div class="segmented" id="diffSelect">
+        <button data-d="easy"><span data-i18n="diff.easy">Fácil</span><small data-i18n="diff.easy.sub">Se despista</small></button>
+        <button data-d="normal" class="active"><span data-i18n="diff.normal">Normal</span><small data-i18n="diff.normal.sub">Equilibrado</small></button>
+        <button data-d="hard"><span data-i18n="diff.hard">Difícil</span><small data-i18n="diff.hard.sub">Calcula</small></button>
+      </div>
       <button class="btn-primary" id="btnStartLocal" style="width:100%;margin-top:16px;" data-i18n="btn.start">Empezar partida</button>
       <button class="btn-secondary btn-tutorial" id="btnTutorial" data-i18n="btn.tutorial" style="margin-top:10px;">Aprender a jugar (1 min)</button>
     </div>
@@ -82,6 +88,12 @@
       <button class="btn-secondary btn-share" id="btnShare" data-i18n="btn.share">Compartir enlace</button>
       <div class="seats" id="seatsList"></div>
       <div class="lobby-actions" id="lobbyHostActions">
+        <div class="field-label" data-i18n="diff.lobby">Dificultad de las CPU</div>
+        <div class="segmented" id="lobbyDiff">
+          <button data-d="easy"><span data-i18n="diff.easy">Fácil</span></button>
+          <button data-d="normal" class="active"><span data-i18n="diff.normal">Normal</span></button>
+          <button data-d="hard"><span data-i18n="diff.hard">Difícil</span></button>
+        </div>
         <button class="btn-secondary" id="btnAddBot" data-i18n="btn.addBot">Añadir CPU</button>
         <button class="btn-primary" id="btnStartOnline" data-i18n="btn.start">Empezar partida</button>
       </div>

@@ -113,8 +113,20 @@
     player.hand.push(state.deck.pop());
     return true;
   }
+  /* Las CPU difíciles ven una carta más: roban una extra y se quedan con las 3 mejores. La mano nunca pasa de 3 cartas. */
+  function extraLook(p){
+    if(p.hand.length<HAND_SIZE || Math.random()>=HARD.look || !drawOne(p)) return;
+    var base = evalFor(p), acts = legalActions(p), worst = null, worstV = 1e9;
+    p.hand.forEach(function(card){
+      var best = -1e9;
+      acts.forEach(function(a){ if(a.card.id===card.id){ var v = simulate(p, a) - base; if(v>best) best = v; } });
+      if(best<worstV-.001 || (Math.abs(best-worstV)<=.001 && Math.random()<.5)){ worstV = best; worst = card; }
+    });
+    if(worst){ p.hand.splice(p.hand.indexOf(worst), 1); state.discard.push(worst); }
+  }
   function drawToHand(player){
     while(player.hand.length<HAND_SIZE){ if(!drawOne(player)) break; }
+    if(player.isBot && levelOf(player)==='hard') extraLook(player);
   }
   function removeFromHand(player, card){
     var idx = player.hand.findIndex(function(c){ return c.id===card.id; });
@@ -423,7 +435,7 @@
     botTimer = null;
     var players = [newPlayer('human',T('you'),false)];
     for(var i=0;i<numBots;i++) players.push(newPlayer('bot'+i, botNames()[i], true));
-    state = { players: players, deck: buildDeck(), discard: [], turn: 0, turnCount:0, log: [], over: false, winnerId:null };
+    state = { players: players, deck: buildDeck(), discard: [], turn: 0, turnCount:0, log: [], over: false, winnerId:null, difficulty: difficulty };
     players.forEach(function(p){ drawToHand(p); });
     addLog('start');
     showScreen('game');
@@ -468,7 +480,109 @@
   }
 
   /* ================= BOT AI (shared local + online) ================= */
+  /* Niveles de dificultad (state.difficulty, o bot.level para probar mezclas):
+     fácil  = juega al azar y a veces se despista descartando;
+     normal = reglas fijas (la IA de siempre);
+     difícil = simula cada jugada posible y elige la que mejor deja el tablero, vigilando al rival que va primero. */
+  function levelOf(bot){ return bot.level || (state && state.difficulty) || 'normal'; }
   function decideBotAction(bot){
+    var lvl = levelOf(bot);
+    if(lvl==='easy') return decideEasyBot(bot);
+    if(lvl==='hard') return decideHardBot(bot);
+    /* normal: las reglas de siempre, pero a veces se equivoca y juega algo al azar */
+    if(Math.random()<HARD.slip){ var acts = legalActions(bot); if(acts.length) return pickRandom(acts); }
+    return decideNormalBot(bot);
+  }
+  function pickRandom(list){ return list[Math.floor(Math.random()*list.length)]; }
+  function legalActions(bot){
+    var acts = [];
+    bot.hand.forEach(function(card){
+      if(card.type==='treatment'){
+        getTreatmentOptions(bot, card).forEach(function(o){ acts.push({type:'play', card:card, target:o.choice}); });
+      } else {
+        getValidTargets(bot, card).forEach(function(t){ acts.push({type:'play', card:card, target:t}); });
+      }
+    });
+    return acts;
+  }
+  function randomDiscard(bot, max){
+    var n = Math.max(1, Math.min(max, bot.hand.length));
+    var ids = bot.hand.map(function(c){ return c.id; }).sort(function(){ return Math.random()-.5; }).slice(0, n);
+    return {type:'discard', cardIds:ids};
+  }
+  function decideEasyBot(bot){
+    var acts = legalActions(bot);
+    if(!acts.length || Math.random()<.3) return randomDiscard(bot, 2);
+    var organs = acts.filter(function(a){ return a.card.type==='organ'; });
+    return pickRandom(organs.length && Math.random()<.5 ? organs : acts);
+  }
+  /* pesos de la IA difícil */
+  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.6, discardBase:.3, discardEach:.3, riskH:1, riskV:.8, slip:.2, look:.3};
+  /* riesgo de cada color: cuántos patógenos de ese color quedan por salir (se cuentan el descarte, la mano del bot y los ya puestos) */
+  var riskCtx = null;
+  function riskMap(bot){
+    var seen = {wild:0}; COLORS.forEach(function(c){ seen[c] = 0; });
+    var count = function(c){ if(c.type==='virus') seen[c.color] = (seen[c.color]||0)+1; };
+    state.discard.forEach(count); bot.hand.forEach(count);
+    state.players.forEach(function(p){ COLORS.forEach(function(col){ var o = p.board[col]; if(o && o.status==='infected') seen[o.wild ? 'wild' : o.color]++; }); });
+    var wildLeft = Math.max(0, 1-seen.wild), r = {};
+    COLORS.forEach(function(col){ r[col] = Math.min(1, (Math.max(0, 4-seen[col]) + wildLeft)/5); });
+    return r;
+  }
+  /* puntuación de un cuerpo: órganos según su estado, protección, y empuje hacia ganar */
+  function sideScore(p){
+    var s = 0, ok = 0;
+    COLORS.forEach(function(c){
+      var o = p.board[c]; if(!o) return;
+      var rk = riskCtx ? riskCtx[c] : .5;
+      s += o.status==='immune' ? HARD.immune : o.status==='vaccinated' ? HARD.vacc + HARD.riskV*(rk-.5) : o.status==='healthy' ? HARD.healthy - HARD.riskH*(rk-.5) : HARD.infected;
+      if(o.status!=='infected') ok++;
+      if(barrierActive(o)) s += HARD.barrier;
+    });
+    if(ok>=3) s += HARD.near;
+    if(ok>=4) s += 100;
+    return s;
+  }
+  function evalFor(bot){
+    var e = sideScore(bot);
+    opponentsOf(bot).map(sideScore).sort(function(a,b){ return b-a; }).forEach(function(v,i){ e -= v*(i===0 ? HARD.topW : HARD.otherW); });
+    return e + bot.hand.length*HARD.handW;
+  }
+  function simulate(bot, act){
+    var saved = state, value = -1e9;
+    try{
+      state = JSON.parse(JSON.stringify(saved));
+      var b2 = state.players.find(function(p){ return p.id===bot.id; });
+      b2.hand = JSON.parse(JSON.stringify(bot.hand));
+      var card = b2.hand.find(function(c){ return c.id===act.card.id; });
+      if(card.type==='treatment') playTreatment(b2, card, act.target||{}); else playCard(b2, card, act.target);
+      value = evalFor(b2);
+    }catch(e){ value = -1e9; }
+    finally{ state = saved; }
+    return value;
+  }
+  function decideHardBot(bot){
+    riskCtx = riskMap(bot);
+    try{ return decideHardInner(bot); } finally{ riskCtx = null; }
+  }
+  function decideHardInner(bot){
+    var acts = legalActions(bot), base = evalFor(bot);
+    var playable = {}; acts.forEach(function(a){ playable[a.card.id] = true; });
+    var useless = bot.hand.filter(function(c){ return !playable[c.id]; });
+    var best = null, bestV = -1e9, ties = [];
+    acts.forEach(function(a){
+      var v = simulate(bot, a) - base;
+      if(v>bestV+.001){ bestV = v; ties = [a]; }
+      else if(Math.abs(v-bestV)<=.001){ ties.push(a); }
+    });
+    if(ties.length) best = pickRandom(ties);
+    var discardV = useless.length ? HARD.discardBase + HARD.discardEach*Math.min(3, useless.length) : 0;
+    if(best && bestV>discardV) return best;
+    if(useless.length) return {type:'discard', cardIds:useless.slice(0,3).map(function(c){ return c.id; })};
+    return best || randomDiscard(bot, 1);
+  }
+
+  function decideNormalBot(bot){
     var i, card, targets;
     for(i=0;i<bot.hand.length;i++){
       card = bot.hand[i];
@@ -1215,6 +1329,24 @@
   document.getElementById('btnStartLocal').addEventListener('click', function(){
     startGameLocal(chosenOpponents);
   });
+  /* dificultad de las CPU: se recuerda; el anfitrión la elige también en la sala online */
+  var DIFFS = ['easy','normal','hard'];
+  var difficulty = 'normal';
+  try{ var savedDiff = localStorage.getItem('anticuerpos_diff'); if(DIFFS.indexOf(savedDiff)>-1) difficulty = savedDiff; }catch(e){}
+  function refreshDifficultyUI(){
+    ['diffSelect','lobbyDiff'].forEach(function(id){
+      Array.prototype.forEach.call(document.querySelectorAll('#'+id+' button'), function(b){ b.classList.toggle('active', b.dataset.d===difficulty); });
+    });
+  }
+  ['diffSelect','lobbyDiff'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+      var b = e.target.closest('button'); if(!b || DIFFS.indexOf(b.dataset.d)<0) return;
+      difficulty = b.dataset.d;
+      try{ localStorage.setItem('anticuerpos_diff', difficulty); }catch(err){}
+      refreshDifficultyUI();
+    });
+  });
+  refreshDifficultyUI();
   document.getElementById('btnTutorial').addEventListener('click', function(){ Sfx.play('tap'); startTutorial(); });
   refreshTutorialButton();
 
@@ -1505,7 +1637,7 @@
         while(hands[p.id].length<HAND_SIZE){ if(deck.length===0) break; hands[p.id].push(deck.pop()); }
         handCounts[p.id] = hands[p.id].length;
       });
-      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:[{k:'start', p:{}}], over:false, winnerId:null, handCounts:handCounts, gloveFor:[] };
+      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:[{k:'start', p:{}}], over:false, winnerId:null, handCounts:handCounts, gloveFor:[], difficulty:difficulty };
       /* las manos van a documentos privados (hands/{uid}); en la sala solo queda cuántas cartas tiene cada uno */
       var batch = fbDb.batch();
       batch.update(onlineRoomRef, {status:'playing', gameState: gs});
