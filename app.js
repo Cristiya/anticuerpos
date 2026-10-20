@@ -100,8 +100,9 @@
   var POWERS = 4;
   function powerOf(p){ var i = state.players.indexOf(p); return i<0 ? 0 : i%POWERS; }
   function powerDraw(actor, idx){
+    if(TUTORIAL || state.bonus) return;
     if(powerOf(actor)!==idx) return;
-    if(drawOne(actor)) addLog('power', {a:actor.name, ai:actor.id, pw:idx});
+    state.bonus = true; addLog('power', {a:actor.name, ai:actor.id, pw:idx});
   }
 
   function drawOne(player){
@@ -230,6 +231,7 @@
 
   /* ================= ACTIONS (mutate module `state`) ================= */
   function playCard(actor, card, target){
+    statCount('cards', actor);
     removeFromHand(actor, card);
     if(card.type==='organ'){
       actor.board[target.slot] = {id: card.id, color: card.color==='wild'?target.slot:card.color, wild: card.color==='wild', status:'healthy'};
@@ -237,25 +239,26 @@
     } else if(card.type==='medicine'){
       var s1 = actor.board[target.slot];
       /* sano + medicina = vacunado; vacunado + segunda medicina = inmune */
-      if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); }
-      else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
-      else if(s1.status==='infected'){ s1.status='healthy'; addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
+      if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
+      else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); statCount('immunes', actor); powerDraw(actor, 1); }
+      else if(s1.status==='infected'){ s1.status = 'healthy'; statCount('heals', actor); addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
-      if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
-      else if(s2.status==='vaccinated'){ s2.status='healthy'; addLog('unvaccinate', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
+      if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('infections', actor); if(owner.id===MY_ID) gameFlags.hit = true; }
+      else if(s2.status==='vaccinated'){ s2.status='healthy'; addLog('unvaccinate', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); powerDraw(actor, 2); }
       else if(s2.status==='infected'){
         owner.board[target.slot]=null;
         /* el órgano destruido vuelve al descarte para que el mazo no se agote */
         if(s2.id!=null) state.discard.push({id:s2.id, type:'organ', color:s2.wild?'wild':s2.color});
-        addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id});
+        addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('destroys', actor); if(owner.id===MY_ID) gameFlags.hit = true;
         powerDraw(actor, 2); }
     }
     /* un órgano jugado se queda en el tablero; solo vuelve al descarte si lo destruyen (más arriba) */
     if(card.type!=='organ') state.discard.push(card);
   }
   function playTreatment(actor, card, choice){
+    statCount('cards', actor);
     removeFromHand(actor, card);
     state.discard.push(card);
     if(card.kind==='guante'){
@@ -291,7 +294,7 @@
       powerDraw(actor, 3);
     } else if(card.kind==='barrera'){
       actor.board[choice.color].barrier = state.turnCount + state.players.length;
-      addLog('barrier', {a:actor.name, ai:actor.id, c:choice.color});
+      addLog('barrier', {a:actor.name, ai:actor.id, c:choice.color}); statCount('barriers', actor);
     } else if(card.kind==='inmuno'){
       var opp4 = state.players.find(function(p){ return p.id===choice.playerId; });
       var s4 = opp4.board[choice.color];
@@ -305,7 +308,7 @@
         var back = state.discard.splice(di,1)[0];
         actor.board[choice.color] = {id: back.id, color: choice.color, wild: back.color==='wild', status:'healthy'};
         addLog('regen', {a:actor.name, ai:actor.id, c:choice.color});
-        powerDraw(actor, 3);
+
       }
     }
   }
@@ -407,8 +410,10 @@
   function showTutorialEnd(){
     var root = document.getElementById('overlayRoot');
     var tEl = document.getElementById('toastEl'); if(tEl) tEl.classList.remove('show');
+    var fresh = checkAchievements({});
+    var achHTML = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
     root.innerHTML = '<div class="overlay"><div class="modal tut-modal">'+
-      '<h3>'+T('tut.doneTitle')+'</h3><p>'+T('tut.done')+'</p>'+
+      '<h3>'+T('tut.doneTitle')+'</h3><p>'+T('tut.done')+'</p>'+achHTML+
       '<button data-tut="play">'+T('tut.play')+'</button>'+
       '<button class="modal-sound" data-tut="exit">'+T('tut.exit')+'</button>'+
       '</div></div>';
@@ -454,7 +459,9 @@
   }
   var botTimer = null;
   function advanceTurn(){
-    state.turn = (state.turn+1) % state.players.length;
+    /* poder de doctor: el mismo jugador vuelve a jugar (turnCount sube para que robe y se reprogramen las CPU) */
+    if(state.bonus){ state.bonus = false; }
+    else state.turn = (state.turn+1) % state.players.length;
     state.turnCount = (state.turnCount||0)+1;
     beginTurn();
   }
@@ -734,6 +741,7 @@
     if(v) styleAttr = ' style="--card-color:var('+v+')'+fan+'"';
     else if(fan) styleAttr = ' style="'+fan.slice(1)+'"';
     return '<button class="'+cls.join(' ')+'" data-card-id="'+card.id+'"'+styleAttr+' aria-label="'+cardTitle(card)+'. '+cardSub(card)+'">'+
+      (card.type!=='treatment' && CB_MARK[card.color] ? '<span class="cb-mark" aria-hidden="true">'+CB_MARK[card.color]+'</span>' : '')+
       '<div class="card-head"><div class="card-top">'+cardIconHTML(card)+'</div><span class="card-kind">'+typeLabel(card.type)+'</span></div>'+
       '<div class="card-title">'+cardTitle(card)+'</div>'+
       '<div class="card-sub">'+cardSub(card)+'</div>'+
@@ -746,13 +754,16 @@
     {bg:'#C99423', skin:'#8A5A3B', cap:'#E25B4A', extra:'<path d="M9.5 23c0 3 1.6 4.6 3.5 4.6" stroke="#16262A" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="13.2" cy="27.8" r="1.2" fill="#16262A"/>'},
     {bg:'#D6483F', skin:'#F6D5B8', cap:'#3E9B52', extra:'<circle cx="16" cy="5.4" r="1.5" fill="#3E9B52"/>'}
   ];
-  function avatarHTML(i){
+  function avatarHTML(i, mood){
     var a = AVATARS[((i%4)+4)%4];
-    return '<svg class="avatar" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="'+a.bg+'"/>'+
+    var eyes = '<circle cx="13.600" cy="15" r=".95" fill="#16262A"/><circle cx="18.400" cy="15" r=".95" fill="#16262A"/>';
+    if(mood==='happy') eyes = '<path d="M12.300 15.500a1.300 1.300 0 0 1 2.600 0M17.100 15.500a1.300 1.300 0 0 1 2.600 0" stroke="#16262A" stroke-width=".9" fill="none" stroke-linecap="round"/>';
+    if(mood==='scared') eyes = '<circle cx="13.600" cy="15" r="1.700" fill="#fff" stroke="#16262A" stroke-width=".5"/><circle cx="18.400" cy="15" r="1.700" fill="#fff" stroke="#16262A" stroke-width=".5"/><circle cx="13.600" cy="15" r=".6" fill="#16262A"/><circle cx="18.400" cy="15" r=".6" fill="#16262A"/><path d="M12 12.600l3-.8M20 12.600l-3-.8" stroke="#16262A" stroke-width=".7" stroke-linecap="round"/>';
+    return '<svg class="avatar mood-'+(mood||'neutral')+'" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="'+a.bg+'"/>'+
       '<path d="M4.5 32c.8-6.2 5.8-8.6 11.5-8.6s10.700 2.400 11.500 8.600z" fill="#fff"/>'+
       '<circle cx="16" cy="14" r="6.6" fill="'+a.skin+'"/>'+
       '<path d="M9.4 12.600c0-4 3-6.800 6.600-6.800s6.600 2.800 6.600 6.800z" fill="'+a.cap+'"/>'+
-      '<circle cx="13.600" cy="15" r=".95" fill="#16262A"/><circle cx="18.400" cy="15" r=".95" fill="#16262A"/>'+
+      eyes+
       '<rect x="11" y="16.800" width="10" height="4.400" rx="2.100" fill="#E4F4EF" stroke="#9BC7BC" stroke-width=".5"/>'+
       a.extra+'</svg>';
   }
@@ -762,6 +773,7 @@
     var cls = ['slot'];
     if(s) cls.push('filled', s.status);
     if(opts.targetable) cls.push('targetable');
+    var ti = touchInfo(owner.id+':'+color); if(ti && ti.by!==MY_ID) cls.push('touched');
     var styleAttr = ' style="--slot-color:var(--c-'+color+')"';
     var icon = organIcon(color);
     var badge = '';
@@ -771,6 +783,7 @@
     if(barrierActive(s)){ cls.push('barrier'); badge += '<div class="badge barrier-badge">'+BARRIER_ICON+'</div>'; }
     var label = colorLabel(color) + (s ? ' · '+statusLabel(s.status) : '');
     return '<button class="'+cls.join(' ')+'" data-owner="'+owner.id+'" data-slot="'+color+'"'+styleAttr+' aria-label="'+escapeHtml(owner.name)+': '+label+'">'+
+      '<span class="cb-mark" aria-hidden="true">'+CB_MARK[color]+'</span>'+
       '<div class="slot-icon">'+icon+'</div>'+badge+
       '<div class="slot-label">'+colorLabel(color)+'</div>'+
       (s ? '<div class="slot-state">'+statusLabel(s.status)+'</div>' : '')+
@@ -855,8 +868,154 @@
   /* el navegador solo deja sonar tras un gesto del usuario */
   document.addEventListener('pointerdown', function(){ Sfx.unlock(); }, {once:true, passive:true});
 
+  /* ================= Ajustes de accesibilidad ================= */
+  function loadA11y(){
+    var o = {large:false, cb:false, rm:false};
+    try{ var s = JSON.parse(localStorage.getItem('anticuerpos_a11y')||'{}'); for(var k in o){ if(typeof s[k]==='boolean') o[k] = s[k]; } }catch(e){}
+    return o;
+  }
+  var A11Y = loadA11y();
+  function applyA11y(){
+    var h = document.documentElement;
+    ['large','cb','rm'].forEach(function(k){ if(A11Y[k]) h.setAttribute('data-'+k, ''); else h.removeAttribute('data-'+k); });
+    reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !!A11Y.rm;
+  }
+  function saveA11y(){ try{ localStorage.setItem('anticuerpos_a11y', JSON.stringify(A11Y)); }catch(e){} applyA11y(); }
+  var CB_MARK = {heart:'♥', brain:'◆', lung:'▲', kidney:'●', wild:'★'};   /* símbolo por color para el modo daltónico */
+
+  /* ================= Estadísticas y logros (solo en este dispositivo) ================= */
+  var STAT_DEFAULT = {games:0, wins:0, losses:0, streak:0, best:0, heals:0, destroys:0, infections:0, immunes:0, barriers:0, cards:0, hardWins:0, onlineWins:0, doctor:[0,0,0,0], doctorWins:[0,0,0,0], ach:{}};
+  function freshStats(){ return JSON.parse(JSON.stringify(STAT_DEFAULT)); }
+  function loadStats(){
+    var s = freshStats();
+    try{ var o = JSON.parse(localStorage.getItem('anticuerpos_stats')||'{}'); for(var k in s){ if(o[k]!==undefined && typeof o[k]===typeof s[k]) s[k] = o[k]; } }catch(e){}
+    return s;
+  }
+  var STATS = loadStats(), gameFlags = {hit:false};
+  function saveStats(){ try{ localStorage.setItem('anticuerpos_stats', JSON.stringify(STATS)); }catch(e){} }
+  function statCount(key, actor){ if(actor && actor.id===MY_ID && !TUTORIAL){ STATS[key]++; saveStats(); } }
+  var ACHIEVEMENTS = [
+    {id:'first_win', ok:function(s){ return s.wins>=1; }},
+    {id:'streak3', ok:function(s){ return s.best>=3; }},
+    {id:'veteran', ok:function(s){ return s.games>=10; }},
+    {id:'hard_win', ok:function(s){ return s.hardWins>=1; }},
+    {id:'online_win', ok:function(s){ return s.onlineWins>=1; }},
+    {id:'untouched', ok:function(s,c){ return !!(c && c.won && !c.hit); }},
+    {id:'fortress', ok:function(s,c){ return !!(c && c.won && c.immuneCount>=2); }},
+    {id:'destroyer', ok:function(s){ return s.destroys>=10; }},
+    {id:'healer', ok:function(s){ return s.heals>=10; }},
+    {id:'shielder', ok:function(s){ return s.barriers>=5; }},
+    {id:'student', ok:function(){ return tutDone(); }}
+  ];
+  function checkAchievements(ctx){
+    var fresh = [];
+    ACHIEVEMENTS.forEach(function(a){ if(!STATS.ach[a.id] && a.ok(STATS, ctx||{})){ STATS.ach[a.id] = Date.now(); fresh.push(a.id); } });
+    if(fresh.length) saveStats();
+    return fresh;
+  }
+  /* se llama una vez al terminar cada partida (no cuenta el tutorial); devuelve los logros nuevos */
+  function recordGame(winner){
+    if(TUTORIAL || !me()) return [];
+    var won = winner.id===MY_ID, humans = state.players.filter(function(p){ return !p.isBot; }).length, pw = powerOf(me());
+    STATS.games++; STATS.doctor[pw]++;
+    if(won){
+      STATS.wins++; STATS.streak++; STATS.best = Math.max(STATS.best, STATS.streak); STATS.doctorWins[pw]++;
+      if(state.difficulty==='hard' && state.players.some(function(p){ return p.isBot; })) STATS.hardWins++;
+      if(GAME_MODE==='online' && humans>=2) STATS.onlineWins++;
+    } else { STATS.losses++; STATS.streak = 0; }
+    var imm = COLORS.filter(function(c){ var o = winner.board[c]; return o && o.status==='immune'; }).length;
+    var fresh = checkAchievements({won:won, hit:gameFlags.hit, immuneCount:won ? imm : 0});
+    saveStats();
+    gameFlags = {hit:false};
+    return fresh;
+  }
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.4 12.4l3 3 6.2-6.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_LOCK = '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  function showStats(){
+    var root = document.getElementById('overlayRoot'), s = STATS;
+    var fav = '—', max = 0; s.doctor.forEach(function(n,i){ if(n>max){ max = n; fav = T('power.'+i+'.name'); } });
+    var cells = [['stats.games', s.games], ['stats.wins', s.wins], ['stats.rate', (s.games ? Math.round(100*s.wins/s.games) : 0)+'%'], ['stats.streak', s.streak], ['stats.best', s.best], ['stats.doctor', fav]]
+      .map(function(c){ return '<div class="stat"><b>'+escapeHtml(String(c[1]))+'</b><small>'+T(c[0])+'</small></div>'; }).join('');
+    var done = ACHIEVEMENTS.filter(function(a){ return s.ach[a.id]; }).length;
+    var list = ACHIEVEMENTS.map(function(a){
+      var on = !!s.ach[a.id];
+      return '<li class="ach'+(on ? ' on' : '')+'"><span class="ach-ic">'+(on ? ICON_CHECK : ICON_LOCK)+'</span><div><b>'+T('ach.'+a.id+'.name')+'</b><small>'+T('ach.'+a.id+'.desc')+'</small></div></li>';
+    }).join('');
+    root.innerHTML = '<div class="overlay" id="statsOverlay"><div class="modal stats-modal">'+
+      '<h3>'+T('stats.title')+'</h3><div class="stat-grid">'+cells+'</div>'+
+      '<h4>'+T('ach.title')+' <span class="ach-count">'+done+'/'+ACHIEVEMENTS.length+'</span></h4><ul class="ach-list">'+list+'</ul>'+
+      '<button id="statsClose">'+T('help.close')+'</button>'+
+      '<button id="statsReset" class="modal-sound">'+T('stats.reset')+'</button></div></div>';
+    document.getElementById('statsClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('statsReset').addEventListener('click', function(){
+      if(!window.confirm(T('stats.resetConfirm'))) return;
+      STATS = freshStats(); saveStats(); showStats();
+    });
+    document.getElementById('statsOverlay').addEventListener('click', function(e){ if(e.target.id==='statsOverlay') root.innerHTML = ''; });
+  }
+  function showA11yPanel(){
+    var root = document.getElementById('overlayRoot');
+    var row = function(k){ return '<label class="a11y-row"><span><b>'+T('a11y.'+k)+'</b><small>'+T('a11y.'+k+'.desc')+'</small></span><input type="checkbox" data-a11y="'+k+'"'+(A11Y[k] ? ' checked' : '')+'></label>'; };
+    root.innerHTML = '<div class="overlay" id="a11yOverlay"><div class="modal"><h3>'+T('a11y.title')+'</h3>'+row('large')+row('cb')+row('rm')+
+      '<button id="a11yClose">'+T('help.close')+'</button></div></div>';
+    Array.prototype.forEach.call(root.querySelectorAll('input[data-a11y]'), function(i){
+      i.addEventListener('change', function(){ A11Y[i.getAttribute('data-a11y')] = i.checked; saveA11y(); });
+    });
+    document.getElementById('a11yClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('a11yOverlay').addEventListener('click', function(e){ if(e.target.id==='a11yOverlay') root.innerHTML = ''; });
+  }
+
+  /* ================= Aviso de turno, destello de borde y marca de lo que acaba de tocar un rival ================= */
+  function showBanner(html, kind){
+    var b = document.getElementById('turnBanner'); if(!b) return;
+    b.className = 'turn-banner '+(kind||''); b.innerHTML = html; b.hidden = false;
+    clearTimeout(b._h);
+    if(window.Element && Element.prototype.animate && !reduceMotion){
+      b.getAnimations().forEach(function(a){ a.cancel(); });
+      b.animate([
+        {transform:'translate(-50%,-14px) scale(.92)', opacity:0},
+        {transform:'translate(-50%,0) scale(1)', opacity:1, offset:.18},
+        {transform:'translate(-50%,0) scale(1)', opacity:1, offset:.78},
+        {transform:'translate(-50%,-8px) scale(.98)', opacity:0}
+      ], {duration:1500, easing:'ease-out'});
+    }
+    b._h = setTimeout(function(){ b.hidden = true; }, 1500);
+  }
+  function edgeGlow(kind){
+    var g = document.getElementById('edgeGlow');
+    if(!g || reduceMotion || !g.animate) return;
+    g.className = kind || 'me';
+    g.animate([{opacity:0},{opacity:1, offset:.25},{opacity:0}], {duration:900, easing:'ease-out'});
+  }
+  var touched = {};   /* 'dueño:color' -> {until, by}: lo que acaba de cambiar un rival */
+  function markTouched(key, by){ touched[key] = {until:Date.now()+2600, by:by}; }
+  function touchInfo(key){
+    var t = touched[key]; if(!t) return null;
+    if(t.until<Date.now()){ delete touched[key]; return null; }
+    return t;
+  }
+  function moodOf(p){
+    var hit = COLORS.some(function(c){ var t = touchInfo(p.id+':'+c); return t && t.by!==p.id; });
+    if(hit) return 'scared';
+    var ok = 0, inf = 0;
+    COLORS.forEach(function(c){ var o = p.board[c]; if(o){ if(o.status==='infected') inf++; else ok++; } });
+    return ok>=3 ? 'happy' : (inf>=2 ? 'scared' : 'neutral');
+  }
+  /* partículas suaves de fondo en la mesa */
+  (function(){
+    var g = document.getElementById('screenGame'), amb = document.createElement('div');
+    amb.className = 'ambient'; amb.setAttribute('aria-hidden', 'true');
+    for(var i=0;i<9;i++){
+      var e = document.createElement('i'), sz = 14+Math.random()*34;
+      e.style.cssText = 'width:'+sz.toFixed(0)+'px;height:'+sz.toFixed(0)+'px;left:'+Math.round(Math.random()*100)+'%;top:'+Math.round(Math.random()*100)+'%;--d:'+(14+Math.random()*14).toFixed(1)+'s;--dl:'+(-Math.random()*14).toFixed(1)+'s';
+      amb.appendChild(e);
+    }
+    g.insertBefore(amb, g.firstChild);
+  })();
+
   var prevSlots = null, prevCounts = null, lastTurnSound = null, powerToastShown = false;
-  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduceMotion = false;
+  applyA11y();
   function slotSnapshot(){
     var m = {};
     state.players.forEach(function(p){ COLORS.forEach(function(c){ var s = p.board[c]; m[p.id+':'+c] = s ? s.status + (barrierActive(s) ? '!' : '') : ''; }); });
@@ -979,9 +1138,18 @@
     } else if(pc && counts.discard>pc.discard){
       Sfx.play('discard');
     }
+    /* lo que acaba de cambiar un rival queda marcado unos segundos (también en pantallas sin efectos) */
+    var actor = latest && latest.p && latest.p.ai, from = null, html = null;
+    if(actor && changes.length && changes.length<=6){
+      changes.forEach(function(ch){
+        markTouched(ch.key, actor);
+        var te = slotEl(ch.key); if(te && actor!==MY_ID) te.classList.add('touched');
+        setTimeout(function(){ var t2 = slotEl(ch.key); if(t2 && !touchInfo(ch.key)) t2.classList.remove('touched'); }, 2700);
+      });
+      setTimeout(function(){ if(state && !state.over) renderOpponents(); }, 2750);   /* el rival recupera la calma */
+    }
     if(reduceMotion || !canFx) return;
     /* de dónde sale la carta: de mi mano si la jugué yo, o del rival que actuó */
-    var actor = latest && latest.p && latest.p.ai, from = null, html = null;
     var handIds = me() ? me().hand.map(function(c){ return String(c.id); }) : [];
     var gone = Object.keys(before||{}).filter(function(id){ return handIds.indexOf(id)<0; });
     if(actor===MY_ID && gone.length){ from = before[gone[0]].rect; html = before[gone[0]].html; }
@@ -1027,7 +1195,17 @@
     /* aviso sonoro cuando pasa a ser tu turno */
     if(state.turnCount!==lastTurnSound){
       lastTurnSound = state.turnCount;
-      if(isHumanTurn() && state.log.length>1 && !state.over && !glovePending()) Sfx.play('turn');
+      if(state.log.length>1 && !state.over && !glovePending() && !TUTORIAL){
+        var cp0 = currentPlayer(), lg0 = state.log[0], isPow = lg0 && typeof lg0==='object' && lg0.k==='power';
+        if(isHumanTurn()){
+          Sfx.play('turn');
+          showBanner(isPow ? escapeHtml(logText(lg0)) : T('turn.you'), isPow ? 'power' : 'me');
+          edgeGlow('me');
+        } else if(cp0){
+          showBanner((isPow ? escapeHtml(logText(lg0)) : avatarHTML(state.players.indexOf(cp0), 'neutral')+T('turn.of',{n:escapeHtml(cp0.name)})), isPow ? 'power' : 'rival');
+          if(isPow) edgeGlow('power');
+        }
+      }
     }
     renderTopbar();
     renderOpponents();
@@ -1063,7 +1241,7 @@
       var handCount = p.hand ? p.hand.length : ((state.handCounts && state.handCounts[p.id]) || 0);
       var backs = ''; for(var b=0;b<handCount;b++) backs += '<span class="cardback"></span>';
       return '<div class="oppcard'+active+'">'+
-        '<div class="opphead"><div class="oppwho" title="'+escapeHtml(T('power.'+powerOf(p)+'.name')+': '+T('power.'+powerOf(p)+'.desc'))+'">'+avatarHTML(state.players.indexOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
+        '<div class="opphead"><div class="oppwho" title="'+escapeHtml(T('power.'+powerOf(p)+'.name')+': '+T('power.'+powerOf(p)+'.desc'))+'">'+avatarHTML(state.players.indexOf(p), moodOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
         '<div class="oppslots">'+slots+'</div>'+
       '</div>';
     }).join('');
@@ -1228,7 +1406,8 @@
     if(w){ state.turnCount=(state.turnCount||0)+1; state.over=true; state.winnerId=w.id; return; }
     if((state.gloveFor||[]).length>0) return;
     state.turnCount = (state.turnCount||0)+1;
-    state.turn = (state.turn+1) % state.players.length;
+    if(state.bonus){ state.bonus = false; }   /* poder de doctor: vuelve a jugar el mismo */
+    else state.turn = (state.turn+1) % state.players.length;
   }
   function commitOnlineAction(){
     endOnlineTurn();
@@ -1360,6 +1539,8 @@
     var root = document.getElementById('overlayRoot');
     var iWon = winner.id===MY_ID;
     Sfx.play(iWon ? 'win' : 'lose');
+    var fresh = recordGame(winner);   /* estadísticas y logros de esta partida */
+    var achHTML = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
     var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
     /* el cuerpo completo del ganador, órgano a órgano; el escudo marca los inmunes */
     var body = COLORS.map(function(c, i){
@@ -1376,7 +1557,7 @@
     root.innerHTML = '<div class="overlay"><div class="confetti-rain" aria-hidden="true">'+rain+'</div><div class="modal win-modal'+(iWon?' won':'')+'">'+
       '<div class="win-body" aria-hidden="true">'+body+'</div>'+
       '<h2>'+(iWon ? T('win.me') : escapeHtml(T('win.other',{n:winner.name}))) +'</h2>'+
-      '<p>'+msg+'</p>'+
+      '<p>'+msg+'</p>'+achHTML+
       '<button id="playAgain">'+T('win.again')+'</button>'+
       '</div></div>';
     document.getElementById('playAgain').addEventListener('click', function(){
@@ -1391,6 +1572,12 @@
     document.getElementById('screenSetup').hidden = name!=='setup';
     document.getElementById('screenLobby').hidden = name!=='lobby';
     document.getElementById('screenGame').hidden = name!=='game';
+    /* entrada suave de la pantalla que aparece */
+    var target = document.getElementById({setup:'screenSetup', lobby:'screenLobby', game:'screenGame'}[name]);
+    if(target && !reduceMotion){
+      target.classList.remove('enter'); void target.offsetWidth; target.classList.add('enter');
+      setTimeout(function(){ target.classList.remove('enter'); }, 450);
+    }
   }
   function goToSetup(){
     TUTORIAL = false;
@@ -1454,6 +1641,8 @@
   });
   refreshDifficultyUI();
   document.getElementById('btnTutorial').addEventListener('click', function(){ Sfx.play('tap'); startTutorial(); });
+  document.getElementById('btnStats').addEventListener('click', function(){ Sfx.play('tap'); showStats(); });
+  document.getElementById('btnA11y').addEventListener('click', function(){ Sfx.play('tap'); showA11yPanel(); });
   refreshTutorialButton();
 
   var savedName = localStorage.getItem('anticuerpos_name');

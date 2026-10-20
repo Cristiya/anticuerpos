@@ -77,6 +77,11 @@
       </div>
       <p class="hint" id="onlineHint"></p>
     </div>
+
+    <div class="mini-actions">
+      <button class="btn-text" id="btnStats" data-i18n="btn.stats">Estadísticas y logros</button>
+      <button class="btn-text" id="btnA11y" data-i18n="btn.a11y">Accesibilidad</button>
+    </div>
   </section>
 
   <!-- ================= LOBBY SCREEN ================= -->
@@ -138,6 +143,9 @@
 
   <div id="overlayRoot"></div>
 </div>
+
+<div id="turnBanner" class="turn-banner" hidden role="status"></div>
+<div id="edgeGlow" aria-hidden="true"></div>
 
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>

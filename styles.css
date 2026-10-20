@@ -388,3 +388,81 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
   #fxLayer{display:none;}
   .card.virus .card-top svg,.card.selected::after{animation:none;}
 }
+
+/* ---------- Aviso de turno, destello de borde, marca del rival, ambiente ---------- */
+.turn-banner{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);z-index:62;max-width:calc(100vw - 32px);display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);box-shadow:var(--shadow);font-weight:700;font-size:.86rem;pointer-events:none;white-space:nowrap;}
+.turn-banner .avatar{width:24px;height:24px;}
+.turn-banner b{color:var(--accent-strong);}
+.turn-banner.me{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.turn-banner.me b{color:inherit;}
+.turn-banner.power{background:var(--treatment);color:#fff;border-color:var(--treatment);}
+#edgeGlow{position:fixed;inset:0;pointer-events:none;z-index:61;opacity:0;}
+#edgeGlow.me{box-shadow:inset 0 0 38px 6px color-mix(in srgb, var(--accent) 65%, transparent);}
+#edgeGlow.power{box-shadow:inset 0 0 38px 6px color-mix(in srgb, var(--treatment) 70%, transparent);}
+.slot.touched{outline:2.5px solid var(--treatment);outline-offset:2px;animation:touched-pulse 1.1s ease-in-out 2;}
+@keyframes touched-pulse{0%,100%{outline-color:var(--treatment);}50%{outline-color:color-mix(in srgb, var(--treatment) 25%, transparent);}}
+.avatar.mood-scared{animation:avatar-shiver .35s ease-in-out 3;}
+@keyframes avatar-shiver{0%,100%{transform:translateX(0);}25%{transform:translateX(-1.5px);}75%{transform:translateX(1.5px);}}
+.game{isolation:isolate;}
+.ambient{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+.ambient i{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 24%, transparent), color-mix(in srgb, var(--accent) 5%, transparent) 70%);animation:drift var(--d) ease-in-out infinite;animation-delay:var(--dl);}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(18px,-26px) scale(1.12);}66%{transform:translate(-14px,-10px) scale(.94);}}
+
+/* ---------- Entrada de pantallas y de la pantalla de inicio ---------- */
+.screen.enter{animation:screen-in .35s ease-out backwards;}
+@keyframes screen-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+@keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+@keyframes fan-in{from{opacity:0;transform:translateY(-46px) rotate(0deg) scale(.6);}to{opacity:1;transform:translateY(var(--dy)) rotate(var(--rot));}}
+@keyframes pop-in{from{opacity:0;transform:scale(.3);}to{opacity:1;transform:scale(1);}}
+.fcard{animation:fan-in .8s cubic-bezier(.2,1.1,.3,1) backwards, fan-float 4.2s ease-in-out infinite;animation-delay:calc(var(--i) * .09s), calc(.8s + var(--i) * .09s);}
+.fvirus{animation:pop-in .6s .55s cubic-bezier(.2,1.4,.4,1) backwards;}
+.setup h1{animation:rise .7s .2s backwards;}
+.setup .tag{animation:rise .7s .32s backwards;}
+.setup > .rules-card,.setup > div:not(.glyphs):not(.mini-actions){animation:rise .6s .45s backwards;}
+.setup > .mini-actions{animation:rise .6s .6s backwards;}
+
+/* ---------- Estadísticas, logros y accesibilidad ---------- */
+.mini-actions{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;}
+.stats-modal{max-height:88vh;overflow-y:auto;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px;}
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center;}
+.stat b{display:block;font-family:"Space Grotesk",sans-serif;font-size:1.15rem;}
+.stat small{display:block;color:var(--ink-dim);font-size:.62rem;margin-top:2px;line-height:1.2;}
+.modal h4{margin:0 0 8px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);}
+.ach-count{color:var(--ink-dim);font-weight:600;}
+.modal .ach-list{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px;}
+.ach{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-dim);}
+.ach.on{background:color-mix(in srgb, var(--accent) 12%, var(--surface));border-color:color-mix(in srgb, var(--accent) 45%, var(--line));color:var(--ink);}
+.ach b{display:block;font-size:.82rem;}
+.ach small{display:block;font-size:.7rem;color:var(--ink-dim);line-height:1.3;}
+.ach-ic{flex:0 0 auto;width:26px;height:26px;color:var(--ink-dim);opacity:.6;}
+.ach.on .ach-ic{color:var(--accent);opacity:1;}
+.ach-ic svg{width:26px;height:26px;}
+.ach-new{display:flex;flex-direction:column;gap:4px;margin:0 0 14px;}
+.ach-new span{background:color-mix(in srgb, var(--treatment) 16%, var(--surface));border:1px solid color-mix(in srgb, var(--treatment) 45%, var(--line));color:var(--ink);border-radius:10px;padding:6px 10px;font-size:.82rem;font-weight:700;}
+.a11y-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+.a11y-row b{display:block;font-size:.9rem;}
+.a11y-row small{display:block;color:var(--ink-dim);font-size:.74rem;line-height:1.35;margin-top:2px;}
+.a11y-row input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:46px;height:28px;border-radius:999px;background:var(--surface-3);border:1.5px solid var(--line);position:relative;cursor:pointer;transition:background .2s;}
+.a11y-row input::after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s;}
+.a11y-row input:checked{background:var(--accent);border-color:var(--accent);}
+.a11y-row input:checked::after{transform:translateX(18px);}
+.modal .a11y-row + button,.modal .a11y-row ~ button{margin-top:14px;}
+
+/* texto grande */
+html[data-large]{font-size:112%;}
+html[data-large] .card{width:118px;}
+html[data-large] .slot-label{font-size:.7rem;}
+/* ayuda para daltonismo: símbolo por color y rayas en lo infectado */
+.cb-mark{display:none;}
+html[data-cb] .cb-mark{display:flex;align-items:center;justify-content:center;position:absolute;top:3px;left:4px;min-width:14px;height:14px;padding:0 2px;border-radius:5px;background:var(--surface);color:var(--ink);font-size:.62rem;font-weight:700;line-height:1;border:1px solid var(--line);z-index:2;}
+html[data-cb] .card .cb-mark{top:auto;bottom:6px;left:auto;right:6px;}
+html[data-cb] .slot.infected{border-style:dashed;border-width:2px;background-image:repeating-linear-gradient(135deg, color-mix(in srgb, var(--treatment) 22%, transparent) 0 4px, transparent 4px 9px);}
+html[data-cb] .slot.immune{border-width:3px;border-style:double;}
+html[data-cb] .slot.vaccinated{border-style:dotted;border-width:2.5px;}
+/* reducir movimiento a mano: apaga todas las animaciones y transiciones */
+html[data-rm] *,html[data-rm] *::before,html[data-rm] *::after{animation:none!important;transition:none!important;}
+html[data-rm] #fxLayer,html[data-rm] .confetti-rain,html[data-rm] .ambient{display:none!important;}
+@media (prefers-reduced-motion: reduce){
+  .screen.enter,.fcard,.fvirus,.setup h1,.setup .tag,.setup > .rules-card,.setup > div,.setup > .mini-actions,.ambient i,.avatar.mood-scared,.slot.touched{animation:none;}
+}
