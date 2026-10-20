@@ -22,7 +22,7 @@ HOW IT WORKS
 • Place organs of 4 different colors: heart, brain, lungs and kidney.
 • Infect a rival organ with a virus of the same color — a second virus destroys it.
 • Heal your infected organs with medicine, or immunize them so nothing can touch them.
-• Play action cards: Contagion, Transplant, Organ Thief, Latex Glove and Medical Error change the whole board.
+• Play action cards: Outbreak, Barter, Raid, Quarantine and Mutation change the whole board.
 
 PLAY YOUR WAY
 • This device: play against 1 to 4 bots, no connection needed to the game itself.
@@ -62,7 +62,7 @@ CÓMO SE JUEGA
 • Coloca órganos de 4 colores distintos: corazón, cerebro, pulmón y riñón.
 • Infecta un órgano rival con un virus del mismo color: un segundo virus lo destruye.
 • Cura tus órganos infectados con medicina, o inmunízalos para que nada pueda tocarlos.
-• Juega cartas de acción: Contagio, Trasplante, Ladrón de Órganos, Guante de Látex y Error Médico cambian todo el tablero.
+• Juega cartas de acción: Brote, Trueque, Saqueo, Cuarentena y Mutación cambian todo el tablero.
 
 JUEGA A TU MANERA
 • En este dispositivo: contra 1 a 4 bots, sin necesitar conexión para jugar.
