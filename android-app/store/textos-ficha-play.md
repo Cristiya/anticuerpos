@@ -26,8 +26,9 @@ HOW IT WORKS
 • Each doctor at the table has a power of their own: draw a card when you heal, immunize, destroy or regenerate.
 
 PLAY YOUR WAY
-• This device: play against 1 to 4 bots, no connection needed to the game itself.
-• Online: create a room, share the 4-character code and play with friends. Up to 5 players, with optional CPU players.
+• This device: play against 1 to 4 bots in three difficulty levels (Easy, Normal and Hard), no connection needed to the game itself.
+• Learn in a minute with the interactive tutorial.
+• Online: create a room and invite friends with a link (or the 4-character code). Up to 5 players, with optional CPU players.
 • Your hand is private: other players only see how many cards you hold.
 
 DESIGNED FOR THE PHONE
@@ -39,9 +40,10 @@ DESIGNED FOR THE PHONE
 Quick to learn, hard to master. Who will complete their body first?
 
 **What’s new** (max 500):
-• New: the whole game is now available in English.
-• Private hands in online games, host handover if the host drops, and a button to skip absent players.
-• New icon and screen design.
+• New interactive tutorial: learn to play in a minute.
+• Invite friends to your room with a link.
+• Three CPU difficulty levels: Easy, Normal and Hard.
+• New cards (Barrier, Immune Breaker, Regeneration), doctor powers, sounds and vibration, new organs and animations.
 
 ---
 
@@ -67,8 +69,9 @@ CÓMO SE JUEGA
 • Cada doctor de la mesa tiene un poder propio: roba una carta al curar, inmunizar, destruir o regenerar.
 
 JUEGA A TU MANERA
-• En este dispositivo: contra 1 a 4 bots, sin necesitar conexión para jugar.
-• Online: crea una sala, comparte el código de 4 caracteres y juega con tus amigos. Hasta 5 jugadores, con CPU opcionales.
+• En este dispositivo: contra 1 a 4 bots en tres niveles de dificultad (Fácil, Normal y Difícil), sin necesitar conexión para jugar.
+• Aprende en un minuto con el tutorial interactivo.
+• Online: crea una sala e invita a tus amigos con un enlace (o con el código de 4 caracteres). Hasta 5 jugadores, con CPU opcionales.
 • Tu mano es privada: los demás solo ven cuántas cartas tienes.
 
 PENSADO PARA EL MÓVIL
@@ -80,9 +83,10 @@ PENSADO PARA EL MÓVIL
 Fácil de aprender, difícil de dominar. ¿Quién completará su cuerpo primero?
 
 **Novedades** (máx. 500):
-• Nuevo: todo el juego disponible en inglés.
-• Manos privadas en las partidas online, traspaso de anfitrión si se cae y botón para saltar a quien no responde.
-• Icono y diseño de pantallas nuevos.
+• Nuevo tutorial interactivo: aprende a jugar en un minuto.
+• Invita a tus amigos a tu sala con un enlace.
+• Tres niveles de dificultad para las CPU: Fácil, Normal y Difícil.
+• Cartas nuevas (Barrera, Inmunosupresor, Regeneración), poderes de los doctores, sonidos y vibración, órganos nuevos y animaciones.
 
 ---
 
