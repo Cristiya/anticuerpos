@@ -2,7 +2,7 @@
   --bg:#F2F6F3; --surface:#FFFFFF; --surface-2:#E6EFE9; --surface-3:#DCE8DF;
   --ink:#16262A; --ink-dim:#5C716D; --line:#D2E0D8;
   --accent:#0E8574; --accent-strong:#0B6D5F; --accent-ink:#FFFFFF;
-  --c-heart:#D6483F; --c-brain:#4A63D6; --c-gut:#3E9B52; --c-bone:#C99423;
+  --c-heart:#D6483F; --c-brain:#4A63D6; --c-lung:#1F9BC4; --c-kidney:#C2428B; --ok:#3E9B52;
   --treatment:#6E5CD6; --shadow: 0 8px 24px -12px rgba(16,38,34,.35);
 }
 @media (prefers-color-scheme: dark){
@@ -10,7 +10,7 @@
     --bg:#0A1513; --surface:#101E1B; --surface-2:#152925; --surface-3:#1B332C;
     --ink:#E7F2ED; --ink-dim:#8FA9A3; --line:#20362F;
     --accent:#33D9B5; --accent-strong:#20B79A; --accent-ink:#052019;
-    --c-heart:#FF7A6F; --c-brain:#8FA0FF; --c-gut:#69D77E; --c-bone:#F2C55C;
+    --c-heart:#FF7A6F; --c-brain:#8FA0FF; --c-lung:#5CCBF0; --c-kidney:#FF8CC8; --ok:#69D77E;
     --treatment:#AC9CFF; --shadow: 0 8px 28px -12px rgba(0,0,0,.6);
   }
 }
@@ -18,7 +18,7 @@
   --bg:#0A1513; --surface:#101E1B; --surface-2:#152925; --surface-3:#1B332C;
   --ink:#E7F2ED; --ink-dim:#8FA9A3; --line:#20362F;
   --accent:#33D9B5; --accent-strong:#20B79A; --accent-ink:#052019;
-  --c-heart:#FF7A6F; --c-brain:#8FA0FF; --c-gut:#69D77E; --c-bone:#F2C55C;
+  --c-heart:#FF7A6F; --c-brain:#8FA0FF; --c-lung:#5CCBF0; --c-kidney:#FF8CC8; --ok:#69D77E;
   --treatment:#AC9CFF; --shadow: 0 8px 28px -12px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -48,7 +48,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .setup{overflow:hidden;}
 .setup::before,.setup::after{content:"";position:absolute;border-radius:50%;filter:blur(46px);opacity:.5;pointer-events:none;z-index:0;}
 .setup::before{width:220px;height:220px;top:-70px;left:-80px;background:color-mix(in srgb, var(--c-brain) 35%, transparent);}
-.setup::after{width:240px;height:240px;bottom:-90px;right:-90px;background:color-mix(in srgb, var(--c-gut) 38%, transparent);}
+.setup::after{width:240px;height:240px;bottom:-90px;right:-90px;background:color-mix(in srgb, var(--c-lung) 38%, transparent);}
 .setup > *{position:relative;z-index:1;}
 .setup > .lang-toggle{position:absolute;}
 .setup .glyphs{display:flex;justify-content:center;align-items:flex-start;height:122px;margin:4px 0 2px;position:relative;}
@@ -117,7 +117,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .opphead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:6px;}
 .oppname{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .opphand{display:flex;align-items:center;gap:3px;color:var(--ink-dim);font-size:.72rem;flex:0 0 auto;}
-.cardback{width:12px;height:16px;border-radius:2.5px;background:linear-gradient(135deg,var(--c-heart),var(--c-brain) 40%,var(--c-gut) 70%,var(--c-bone));}
+.cardback{width:12px;height:16px;border-radius:2.5px;background:linear-gradient(135deg,var(--c-heart),var(--c-brain) 40%,var(--c-lung) 70%,var(--c-kidney));}
 .oppslots{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
 
 .slot{position:relative;aspect-ratio:1/1.12;border-radius:10px;border:1.5px dashed var(--line);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;color:var(--ink-dim);}
@@ -178,8 +178,8 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .card-top svg{width:25px;height:25px;filter:drop-shadow(0 2px 2px color-mix(in srgb, var(--card-color) 35%, transparent));}
 .card-kind{min-width:0;font-size:.5rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--card-color);text-align:right;line-height:1.1;}
 .card.wild{--card-color:var(--ink-dim);}
-.card.wild .card-top{color:#fff;background:conic-gradient(from 90deg,var(--c-heart),var(--c-brain),var(--c-gut),var(--c-bone),var(--c-heart));box-shadow:none;}
-.card.wild .card-kind{background:linear-gradient(90deg,var(--c-heart),var(--c-brain),var(--c-gut));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.card.wild .card-top{color:#fff;background:conic-gradient(from 90deg,var(--c-heart),var(--c-brain),var(--c-lung),var(--c-kidney),var(--c-heart));box-shadow:none;}
+.card.wild .card-kind{background:linear-gradient(90deg,var(--c-heart),var(--c-brain),var(--c-lung));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .card-title{font-weight:700;font-size:.82rem;line-height:1.2;}
 .card-sub{font-size:.68rem;color:var(--ink-dim);line-height:1.35;}
 @keyframes card-in{from{transform:translateY(14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
@@ -211,8 +211,8 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .win-modal .confetti span{width:12px;height:12px;border-radius:3px;display:inline-block;animation:bounce .8s ease-in-out infinite alternate;}
 .win-modal .confetti span:nth-child(1){background:var(--c-heart);}
 .win-modal .confetti span:nth-child(2){background:var(--c-brain);animation-delay:.1s;}
-.win-modal .confetti span:nth-child(3){background:var(--c-gut);animation-delay:.2s;}
-.win-modal .confetti span:nth-child(4){background:var(--c-bone);animation-delay:.3s;}
+.win-modal .confetti span:nth-child(3){background:var(--c-lung);animation-delay:.2s;}
+.win-modal .confetti span:nth-child(4){background:var(--c-kidney);animation-delay:.3s;}
 @keyframes bounce{to{transform:translateY(-10px);}}
 .win-modal h2{font-size:1.5rem;margin-bottom:6px;}
 .win-modal.won h2{font-size:1.85rem;letter-spacing:-.01em;background:linear-gradient(100deg,var(--accent-strong),var(--c-brain) 85%);-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -239,6 +239,15 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 
 .toast{position:fixed;left:50%;top:31%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:.8rem;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;box-shadow:var(--shadow);width:max-content;max-width:calc(100vw - 32px);text-align:center;line-height:1.35;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(4px);}
+
+/* interruptor de sonido y vibración */
+.setup > .sound-toggle{position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;width:44px;height:36px;padding:0;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-dim);display:flex;align-items:center;justify-content:center;}
+.sound-toggle svg{width:20px;height:20px;}
+.sound-toggle:active{transform:scale(.96);}
+.sound-toggle:not(.off) .slash{display:none;}
+.sound-toggle.off .waves{display:none;}
+.sound-toggle.off{color:var(--c-heart);}
+.modal button.modal-sound{margin-top:8px;background:var(--surface-2);color:var(--ink);border:1.5px solid var(--line);font-weight:600;}
 
 /* ---------- Mejoras visuales de la partida ---------- */
 /* mesa: tapete con degradado y trama sutil */
@@ -292,7 +301,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 @keyframes slot-pop{0%{transform:scale(.55);opacity:.3;}60%{transform:scale(1.14);opacity:1;}100%{transform:scale(1);}}
 @keyframes slot-infect{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--treatment) 75%, transparent);transform:translateX(0);}
   15%{transform:translateX(-4px);}30%{transform:translateX(4px);}45%{transform:translateX(-3px);}60%{transform:translateX(2px);box-shadow:0 0 0 12px color-mix(in srgb, var(--treatment) 0%, transparent);}100%{transform:translateX(0);box-shadow:0 0 0 0 transparent;}}
-@keyframes slot-cure{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--c-gut) 80%, transparent);transform:scale(1);}35%{transform:scale(1.1);}100%{box-shadow:0 0 0 16px color-mix(in srgb, var(--c-gut) 0%, transparent);transform:scale(1);}}
+@keyframes slot-cure{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--ok) 80%, transparent);transform:scale(1);}35%{transform:scale(1.1);}100%{box-shadow:0 0 0 16px color-mix(in srgb, var(--ok) 0%, transparent);transform:scale(1);}}
 @keyframes slot-shield{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--slot-color) 85%, transparent);filter:brightness(1);}40%{filter:brightness(1.35);transform:scale(1.08);}100%{box-shadow:0 0 0 18px color-mix(in srgb, var(--slot-color) 0%, transparent);filter:brightness(1);transform:scale(1);}}
 @keyframes slot-destroy{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--c-heart) 85%, transparent), inset 0 0 0 3px color-mix(in srgb, var(--c-heart) 85%, transparent);transform:scale(1.08);}100%{box-shadow:0 0 0 14px color-mix(in srgb, var(--c-heart) 0%, transparent), inset 0 0 0 3px transparent;transform:scale(1);}}
 .pile.bump{animation:pile-bump .35s ease-out;}

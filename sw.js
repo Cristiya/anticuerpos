@@ -1,4 +1,4 @@
-var CACHE = 'anticuerpos-v10';
+var CACHE = 'anticuerpos-v12';
 var ASSETS = [
   './',
   './index.html',

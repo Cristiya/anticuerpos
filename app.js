@@ -2,7 +2,7 @@
   "use strict";
 
   /* ================= CONFIG ================= */
-  var COLORS = ['heart','brain','gut','bone'];
+  var COLORS = ['heart','brain','lung','kidney'];
   var HAND_SIZE = 3;
   /* Textos: ver i18n.js (T = traduce al idioma actual) */
   function colorLabel(c){ return T('color.'+c); }
@@ -21,15 +21,17 @@
     brain: '<path d="M8.6 3.6C6.6 3.4 5 4.9 4.9 6.8 3.4 7.5 2.5 9 2.8 10.6 1.8 11.4 1.4 12.8 1.9 14c.4 1 1.2 1.6 2.2 1.8.2 1.8 1.8 3.2 3.6 3.1.5 1.2 1.7 2 3 2h2.6c1.3 0 2.5-.8 3-2 1.8.1 3.4-1.3 3.6-3.1 1-.2 1.8-.8 2.2-1.8.5-1.2.1-2.6-.9-3.4.3-1.6-.6-3.1-2.1-3.8-.1-1.9-1.7-3.4-3.7-3.2C14.9 3.1 13.7 2.5 12.4 2.5c-1.4 0-2.6.5-3.8 1.1z" transform="translate(-.2 .4)" fill="currentColor"/>'+
       '<path class="shl" d="M12 5.4v14.2M7.2 10c1.5 0 2.5.9 2.6 2.2M16.8 10c-1.5 0-2.5.9-2.6 2.2M6.6 15c1.6 0 2.8-.7 3.3-1.9M17.4 15c-1.6 0-2.8-.7-3.3-1.9M8.4 6.6c.2 1 .9 1.7 1.9 1.9M15.6 6.6c-.2 1-.9 1.7-1.9 1.9"/>'+
       '<ellipse class="hl" cx="6.4" cy="8.4" rx="1.3" ry="1.9" transform="rotate(20 6.4 8.4)"/>',
-    gut: '<path d="M7.6 2.2c-.8 0-1.4.6-1.4 1.4v3.5C3.9 8.2 2.2 10.4 2.2 13.4c0 4.1 3.4 7.4 8.2 7.4 5.6 0 9.4-3.5 9.4-7.9 0-1.8-1-3.1-2.7-3.1-1.5 0-2.1.9-3.7.9-1.7 0-2.7-1-2.7-2.7V3.6c0-.8-.6-1.4-1.4-1.4z" fill="currentColor"/>'+
-      '<path d="M19.6 9.8c1.2-.3 2-1.1 2-2.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'+
-      '<path class="sh" d="M19.8 12.9c0 4.4-3.8 7.9-9.4 7.9-1.3 0-2.5-.2-3.5-.6 1.2 1.1 2.9 1.8 5 1.8 5.4 0 8.9-3 8.9-7.2 0-.7-.1-1.3-.3-1.9z"/>'+
-      '<path class="shl" d="M7.4 12.2c2.2 1 4.6.9 6.4-.3M6.8 15.6c2.6 1 5.6.6 7.8-1"/>'+
-      '<ellipse class="hl" cx="5.6" cy="12.6" rx="1.1" ry="2.2" transform="rotate(14 5.6 12.6)"/>',
-    bone: '<g transform="rotate(-45 12 12)"><rect x="3.8" y="10.2" width="16.4" height="3.6" rx="1.8" fill="currentColor"/>'+
-      '<circle cx="4.8" cy="8.7" r="2.6" fill="currentColor"/><circle cx="4.8" cy="15.3" r="2.6" fill="currentColor"/><circle cx="19.2" cy="8.7" r="2.6" fill="currentColor"/><circle cx="19.2" cy="15.3" r="2.6" fill="currentColor"/>'+
-      '<rect class="sh" x="3.8" y="12.6" width="16.4" height="1.2" rx=".6"/><rect class="hl" x="7.2" y="10.7" width="9.6" height="1" rx=".5"/>'+
-      '<circle class="hl" cx="4.2" cy="7.9" r="1"/><circle class="hl" cx="18.6" cy="7.9" r="1"/></g>'
+    lung: '<rect x="10.9" y="2.2" width="2.2" height="9.2" rx="1.1" fill="currentColor"/>'+
+      '<path d="M10.2 9.8C7.4 8.8 4.2 11.6 3.3 15.8c-.6 2.8.3 5 2.6 5.3 2 .2 3.6-.8 4.6-2.7.5-.9.6-2 .6-3.2v-3.9c0-.8-.6-1.4-1.4-1.6z" fill="currentColor"/>'+
+      '<path d="M13.8 9.8c2.8-1 6 1.8 6.9 6 .6 2.8-.3 5-2.6 5.3-2 .2-3.6-.8-4.6-2.7-.5-.9-.6-2-.6-3.2v-3.9c0-.8.6-1.4 1.4-1.6z" fill="currentColor"/>'+
+      '<path class="sh" d="M10.7 14.4c0 1.2-.1 2.3-.6 3.2-.7 1.3-1.7 2.2-2.9 2.6.9.4 2 .5 3 .1 1.2-.5 2-1.4 2.5-2.4z"/>'+
+      '<path class="shl" d="M12 11.4v2.2M12 13.2l-3 2.4M12 13.2l3 2.4M9.2 15.6l-1.6 2.2M14.8 15.6l1.6 2.2"/>'+
+      '<ellipse class="hl" cx="6.2" cy="14.4" rx="1.1" ry="2.5" transform="rotate(14 6.2 14.4)"/>',
+    kidney: '<path d="M9.2 11.4L5 9.2M9.2 14.2l-3.8 2.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>'+
+      '<path d="M14.4 2.8c4.2 0 6.8 3.1 6.8 7.8 0 5.6-3.9 10.6-8.4 10.6-2.9 0-4.6-2-3.9-4.6.4-1.8 2-2.7 2-4.4 0-1.6-1.6-2.6-2-4.2C8.3 5.1 10.6 2.8 14.4 2.8z" fill="currentColor"/>'+
+      '<path class="sh" d="M21.2 10.6c0 5.6-3.9 10.6-8.4 10.6-1.3 0-2.4-.4-3.1-1.1.9.8 2 1.2 3.4 1.2 4.5 0 8.2-4.5 8.2-9.8 0-.3 0-.6-.1-.9z"/>'+
+      '<path class="shl" d="M13.4 7.4c2 .7 3.2 2.4 3.3 4.6M12.6 16.6c2.1-.3 3.7-1.5 4.4-3.4"/>'+
+      '<ellipse class="hl" cx="11.6" cy="6.1" rx="1.2" ry="2.1" transform="rotate(30 11.6 6.1)"/>'
   };
   function organIcon(color){ return svgWrap(ORGAN_PATHS[color]); }
   var VIRUS_INNER = '<circle cx="12" cy="12" r="5.6" fill="currentColor"/>' +
@@ -479,7 +481,81 @@
   /* ---- Animaciones de las jugadas ----
      No dependen de quién juega ni de si es online: se comparan los tableros antes y después de cada render
      (órgano nuevo, infectado, curado, inmunizado, destruido) y se anima lo que cambió. */
-  var prevSlots = null, prevCounts = null;
+  /* ---- Sonido y vibración ----
+     Los sonidos se sintetizan con Web Audio (sin archivos). La vibración usa navigator.vibrate (Android).
+     Un único interruptor, recordado en localStorage, activa o silencia ambos. */
+  var Sfx = (function(){
+    var on = true, ctx = null, master = null, lastAt = {};
+    try{ on = localStorage.getItem('anticuerpos_sfx')!=='0'; }catch(e){}
+    function ensure(){
+      if(!on) return null;
+      try{
+        if(!ctx){
+          var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
+          ctx = new AC(); master = ctx.createGain(); master.gain.value = .5; master.connect(ctx.destination);
+        }
+        if(ctx.state==='suspended') ctx.resume();
+      }catch(e){ return null; }
+      return ctx;
+    }
+    function tone(f, dur, type, vol, when, to){
+      var c = ensure(); if(!c) return;
+      var t = c.currentTime + (when||0), o = c.createOscillator(), g = c.createGain();
+      o.type = type||'sine'; o.frequency.setValueAtTime(f, t);
+      if(to) o.frequency.exponentialRampToValueAtTime(to, t+dur);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol||.25, t+.012); g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.03);
+    }
+    function noise(dur, vol, lp){
+      var c = ensure(); if(!c) return;
+      var len = Math.floor(c.sampleRate*dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for(var i=0;i<len;i++) d[i] = (Math.random()*2-1)*(1-i/len);
+      var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = buf; f.type = 'lowpass'; f.frequency.value = lp||800; g.gain.value = vol||.2;
+      s.connect(f); f.connect(g); g.connect(master); s.start();
+    }
+    function vib(p){ if(on && navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
+    function notes(list, step, type, vol){ list.forEach(function(f,i){ tone(f, i===list.length-1 ? .35 : .16, type||'sine', vol||.22, i*step); }); }
+    var sounds = {
+      tap:        function(){ tone(880,.05,'triangle',.1); vib(8); },
+      place:      function(){ tone(392,.09,'sine',.28); tone(587,.15,'sine',.26,.07); vib(20); },
+      infect:     function(){ tone(190,.4,'sawtooth',.14,0,80); noise(.25,.1,500); vib([50,40,70]); },
+      destroy:    function(){ noise(.42,.28,700); tone(140,.45,'sawtooth',.18,0,45); vib([120,50,160]); },
+      cure:       function(){ notes([523,659,784],.08,'sine',.2); vib(30); },
+      vaccinate:  function(){ tone(660,.1,'triangle',.24); tone(990,.2,'triangle',.2,.09); vib([15,30,15]); },
+      immune:     function(){ notes([523,659,784,1046],.07,'triangle',.2); vib([20,30,20,30,40]); },
+      discard:    function(){ tone(420,.13,'sine',.16,0,260); vib(10); },
+      turn:       function(){ tone(660,.08,'sine',.18); tone(880,.15,'sine',.2,.09); vib(25); },
+      win:        function(){ notes([523,659,784,1046],.12,'triangle',.24); vib([60,60,60,60,160]); },
+      lose:       function(){ tone(392,.2,'triangle',.2); tone(330,.2,'triangle',.2,.2); tone(262,.5,'triangle',.2,.4,200); vib(200); }
+    };
+    var api = {
+      play: function(name){
+        if(!on || !sounds[name]) return;
+        var now = Date.now(); if(now-(lastAt[name]||0) < 90) return;   /* evita repeticiones por re-renders */
+        lastAt[name] = now; sounds[name]();
+      },
+      isOn: function(){ return on; },
+      set: function(v){
+        on = !!v;
+        try{ localStorage.setItem('anticuerpos_sfx', on ? '1' : '0'); }catch(e){}
+        if(on) api.play('tap');
+        refreshSoundUI();
+      },
+      unlock: ensure
+    };
+    return api;
+  })();
+  function refreshSoundUI(){
+    var b = document.getElementById('btnSound');
+    if(b){ b.classList.toggle('off', !Sfx.isOn()); b.setAttribute('aria-pressed', Sfx.isOn() ? 'true' : 'false'); }
+    var h = document.getElementById('helpSound');
+    if(h) h.textContent = T(Sfx.isOn() ? 'sound.on' : 'sound.off');
+  }
+  /* el navegador solo deja sonar tras un gesto del usuario */
+  document.addEventListener('pointerdown', function(){ Sfx.unlock(); }, {once:true, passive:true});
+
+  var prevSlots = null, prevCounts = null, lastTurnSound = null;
   var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function slotSnapshot(){
     var m = {};
@@ -512,13 +588,22 @@
     var cur = slotSnapshot(), counts = {deck:state.deck.length, discard:state.discard.length};
     var prev = prevSlots, pc = prevCounts;
     prevSlots = cur; prevCounts = counts;
-    if(!prev || reduceMotion || state.log.length<=1) return;   /* partida nueva: nada que animar */
+    if(!prev || state.log.length<=1) return;   /* partida nueva: nada que animar */
     var changes = [];
     Object.keys(cur).forEach(function(k){
       if(prev[k]===undefined || prev[k]===cur[k]) return;
       var type = !cur[k] || prev[k]==='vaccinated'&&cur[k]==='healthy' ? 'destroy' : !prev[k] ? 'place' : cur[k]==='infected' ? 'infect' : (cur[k]==='immune' || cur[k]==='vaccinated') ? 'shield' : 'cure';
-      changes.push({key:k, type:type});
+      changes.push({key:k, type:type, to:cur[k]});
     });
+    /* sonido de la jugada: el efecto más fuerte de los que cambiaron */
+    if(changes.length){
+      var pri = ['destroy','infect','shield','cure','place'], top = null;
+      pri.some(function(t){ top = changes.find(function(ch){ return ch.type===t; }); return !!top; });
+      if(top) Sfx.play(top.type==='shield' ? (top.to==='immune' ? 'immune' : 'vaccinate') : top.type);
+    } else if(pc && counts.discard>pc.discard){
+      Sfx.play('discard');
+    }
+    if(reduceMotion) return;
     if(changes.length && changes.length<=6){
       /* de dónde sale la carta: de mi mano si la jugué yo, o del rival que actuó */
       var latest = state.log[0], actor = latest && latest.p && latest.p.ai, from = null;
@@ -531,7 +616,7 @@
         if(oc) from = oc.getBoundingClientRect();
       }
       if(!from){ var dp = document.getElementById('drawPile'); if(dp) from = dp.getBoundingClientRect(); }
-      var tints = {place:'var(--accent)', infect:'var(--treatment)', shield:'var(--accent-strong)', cure:'var(--c-gut)', destroy:'var(--c-heart)'};
+      var tints = {place:'var(--accent)', infect:'var(--treatment)', shield:'var(--accent-strong)', cure:'var(--ok)', destroy:'var(--c-heart)'};
       changes.forEach(function(ch, n){
         var el = slotEl(ch.key); if(!el) return;
         if(ch.type!=='destroy' && n<3) flyCard(from, el, tints[ch.type]);
@@ -551,6 +636,11 @@
   function render(){
     if(!state) return;
     var before = handRects();
+    /* aviso sonoro cuando pasa a ser tu turno */
+    if(state.turnCount!==lastTurnSound){
+      lastTurnSound = state.turnCount;
+      if(isHumanTurn() && state.log.length>1 && !state.over && !glovePending()) Sfx.play('turn');
+    }
     renderTopbar();
     renderOpponents();
     renderPiles();
@@ -740,6 +830,7 @@
     var card = me().hand.find(function(c){ return c.id===cardId; });
     if(!card) return;
     if(selection.cardId===cardId){ clearSelection(); render(); return; }
+    Sfx.play('tap');
     selection.cardId = cardId;
     if(card.type==='treatment'){
       selection.targets = null;
@@ -817,8 +908,11 @@
       '<li>'+T('help.win')+'</li>'+
       '</ul>'+
       '<button id="helpClose">'+T('help.close')+'</button>'+
+      '<button id="helpSound" class="modal-sound"></button>'+
       '<button id="helpLeave" class="modal-secondary">'+T('help.leave')+'</button>'+
       '</div></div>';
+    refreshSoundUI();
+    document.getElementById('helpSound').addEventListener('click', function(){ Sfx.set(!Sfx.isOn()); });
     document.getElementById('helpClose').addEventListener('click', function(){ root.innerHTML=''; });
     document.getElementById('helpLeave').addEventListener('click', function(){
       if(!window.confirm(T('help.leaveConfirm'))) return;
@@ -838,6 +932,7 @@
     var tEl = document.getElementById('toastEl'); if(tEl) tEl.classList.remove('show');
     var root = document.getElementById('overlayRoot');
     var iWon = winner.id===MY_ID;
+    Sfx.play(iWon ? 'win' : 'lose');
     var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
     /* el cuerpo completo del ganador, órgano a órgano; el escudo marca los inmunes */
     var body = COLORS.map(function(c, i){
@@ -881,6 +976,8 @@
 
   /* idioma: textos estáticos del HTML y botón ES/EN */
   applyStaticI18n();
+  refreshSoundUI();
+  document.getElementById('btnSound').addEventListener('click', function(){ Sfx.set(!Sfx.isOn()); });
   document.getElementById('btnLang').addEventListener('click', function(){
     setLang(getLang()==='es' ? 'en' : 'es');
     MY_NAME = T('you');

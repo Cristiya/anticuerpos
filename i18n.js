@@ -47,7 +47,7 @@
       'confirm.skipTurn': '¿Saltar el turno de {n}?',
       'err.skip': 'No se pudo saltar el turno: {m}',
 
-      'color.heart': 'Corazón', 'color.brain': 'Cerebro', 'color.gut': 'Estómago', 'color.bone': 'Hueso',
+      'color.heart': 'Corazón', 'color.brain': 'Cerebro', 'color.lung': 'Pulmón', 'color.kidney': 'Riñón',
       'type.organ': 'Órgano', 'type.virus': 'Virus', 'type.medicine': 'Medicina', 'type.treatment': 'Acción',
       'status.immune': 'inmune', 'status.vaccinated': 'vacunado', 'status.infected': 'infectado', 'status.healthy': 'sano',
 
@@ -87,6 +87,7 @@
       'win.me': '¡Ganaste!', 'win.other': '{n} gana',
       'win.meMsg': '¡Has completado un cuerpo sano antes que nadie!', 'win.otherMsg': '{n} ha completado su cuerpo primero.',
       'win.again': 'Jugar otra vez',
+      'sound.aria': 'Sonido y vibración', 'sound.on': 'Sonido y vibración: sí', 'sound.off': 'Sonido y vibración: no',
 
       /* registro de la partida */
       'log.deckRecycled': 'El mazo se recicla desde el descarte.',
@@ -178,7 +179,7 @@
       'confirm.skipTurn': 'Skip {n}’s turn?',
       'err.skip': 'Couldn’t skip the turn: {m}',
 
-      'color.heart': 'Heart', 'color.brain': 'Brain', 'color.gut': 'Stomach', 'color.bone': 'Bone',
+      'color.heart': 'Heart', 'color.brain': 'Brain', 'color.lung': 'Lung', 'color.kidney': 'Kidney',
       'type.organ': 'Organ', 'type.virus': 'Virus', 'type.medicine': 'Medicine', 'type.treatment': 'Action',
       'status.immune': 'immune', 'status.vaccinated': 'vaccinated', 'status.infected': 'infected', 'status.healthy': 'healthy',
 
@@ -218,6 +219,7 @@
       'win.me': 'You won!', 'win.other': '{n} wins',
       'win.meMsg': 'You completed a healthy body before anyone else!', 'win.otherMsg': '{n} completed their body first.',
       'win.again': 'Play again',
+      'sound.aria': 'Sound and vibration', 'sound.on': 'Sound and vibration: on', 'sound.off': 'Sound and vibration: off',
 
       'log.deckRecycled': 'The deck is reshuffled from the discard pile.',
       'log.organ': '{a} places an organ on {c}.',
