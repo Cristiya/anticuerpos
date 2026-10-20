@@ -262,6 +262,9 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .card:active{transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg)) scale(.97);}
 .card.marked{transform:translateY(4px) rotate(-2deg);}
 .hand{padding-top:18px;}
+/* vacunado (1 medicina): escudo tenue y aro fino; la segunda medicina lo hace inmune */
+.slot.vaccinated{box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--slot-color) 55%, transparent);}
+.badge.vaccine-badge{opacity:.95;}
 /* estados de los órganos: infectado con esporas, inmune con aureola y destello */
 .slot{overflow:visible;}
 .slot.infected::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;

@@ -154,7 +154,7 @@
     });
   }
   function boardStrength(p){
-    var v=0; COLORS.forEach(function(c){ var s=p.board[c]; if(s){ v += s.status==='immune'?2:(s.status==='infected'?0:1); } });
+    var v=0; COLORS.forEach(function(c){ var s=p.board[c]; if(s){ v += s.status==='immune'?2:(s.status==='infected'?0:(s.status==='vaccinated'?1.5:1)); } });
     return v;
   }
   function getTreatmentOptions(actor, card){
@@ -188,12 +188,15 @@
       addLog('organ', {a:actor.name, ai:actor.id, c:target.slot});
     } else if(card.type==='medicine'){
       var s1 = actor.board[target.slot];
-      if(s1.status==='healthy'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); }
+      /* sano + medicina = vacunado; vacunado + segunda medicina = inmune */
+      if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); }
+      else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); }
       else if(s1.status==='infected'){ s1.status='healthy'; addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
       if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
+      else if(s2.status==='vaccinated'){ s2.status='healthy'; addLog('unvaccinate', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
       else if(s2.status==='infected'){
         owner.board[target.slot]=null;
         /* el órgano destruido vuelve al descarte para que el mazo no se agote */
@@ -322,7 +325,7 @@
       for(i=0;i<bot.hand.length;i++){
         card = bot.hand[i];
         if(card.type==='medicine'){
-          targets = getValidTargets(bot, card).filter(function(t){ return bot.board[t.slot].status==='healthy'; });
+          targets = getValidTargets(bot, card).filter(function(t){ var st=bot.board[t.slot].status; return st==='healthy' || st==='vaccinated'; });
           if(targets.length) return {type:'play', card:card, target:targets[0]};
         }
       }
@@ -355,7 +358,7 @@
           var opts2 = getTreatmentOptions(bot, card).filter(function(o){
             var opp = state.players.find(function(p){ return p.id===o.choice.playerId; });
             var mine = bot.board[o.choice.color].status, theirs = opp.board[o.choice.color].status;
-            var rank = {infected:0, healthy:1, immune:2};
+            var rank = {infected:0, healthy:1, vaccinated:1.5, immune:2};
             return rank[theirs] > rank[mine];
           });
           if(opts2.length) return {type:'play', card:card, target:opts2[0].choice};
@@ -397,6 +400,7 @@
 
   /* ================= RENDER ================= */
   function typeLabel(type){ return T('type.'+type); }
+  var SHIELD_OUTLINE = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.4l6.6 2.5v5.2c0 4-2.7 7.3-6.6 8.5-3.9-1.2-6.6-4.5-6.6-8.5V5.9z" fill="#fff" fill-opacity=".85" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
   var SHIELD_ICON = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 2.8v5.6c0 4.6-3.1 8.4-7.5 9.6-4.4-1.2-7.5-5-7.5-9.6V5.8z" fill="currentColor"/><path d="M8.6 12.2l2.5 2.5 4.4-4.9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function cardColorVar(color){ return color==='wild' ? null : '--c-'+color; }
   function cardTitle(card){
@@ -463,6 +467,7 @@
     var badge = '';
     if(s && s.status==='infected') badge = '<div class="badge virus-badge">'+virusIcon()+'</div>';
     if(s && s.status==='immune') badge = '<div class="badge immune-badge">'+SHIELD_ICON+'</div>';
+    if(s && s.status==='vaccinated') badge = '<div class="badge immune-badge vaccine-badge">'+SHIELD_OUTLINE+'</div>';
     var label = colorLabel(color) + (s ? ' · '+statusLabel(s.status) : '');
     return '<button class="'+cls.join(' ')+'" data-owner="'+owner.id+'" data-slot="'+color+'"'+styleAttr+' aria-label="'+escapeHtml(owner.name)+': '+label+'">'+
       '<div class="slot-icon">'+icon+'</div>'+badge+
@@ -511,7 +516,7 @@
     var changes = [];
     Object.keys(cur).forEach(function(k){
       if(prev[k]===undefined || prev[k]===cur[k]) return;
-      var type = !cur[k] ? 'destroy' : !prev[k] ? 'place' : cur[k]==='infected' ? 'infect' : cur[k]==='immune' ? 'shield' : 'cure';
+      var type = !cur[k] || prev[k]==='vaccinated'&&cur[k]==='healthy' ? 'destroy' : !prev[k] ? 'place' : cur[k]==='infected' ? 'infect' : (cur[k]==='immune' || cur[k]==='vaccinated') ? 'shield' : 'cure';
       changes.push({key:k, type:type});
     });
     if(changes.length && changes.length<=6){

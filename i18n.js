@@ -14,7 +14,7 @@
       'rules.title': 'Cómo se juega',
       'rules.1': 'Coloca <b>órganos</b> de 4 colores distintos frente a ti.',
       'rules.2': 'Lanza <b>virus</b> a un órgano rival del mismo color para infectarlo; un segundo virus lo destruye.',
-      'rules.3': 'Usa <b>medicina</b> en tu propio órgano para curarlo o inmunizarlo.',
+      'rules.3': 'Usa <b>medicina</b> en tu propio órgano: cura uno infectado, vacuna uno sano y con una <b>segunda medicina</b> queda inmune.',
       'rules.4': 'Las cartas de <b>acción</b> alteran el tablero: robos, contagios, trueques.',
       'rules.5': 'Gana quien complete su cuerpo con 4 órganos sanos o inmunes.',
       'mode.label': 'Modo de juego',
@@ -49,12 +49,12 @@
 
       'color.heart': 'Corazón', 'color.brain': 'Cerebro', 'color.gut': 'Estómago', 'color.bone': 'Hueso',
       'type.organ': 'Órgano', 'type.virus': 'Virus', 'type.medicine': 'Medicina', 'type.treatment': 'Acción',
-      'status.immune': 'inmune', 'status.infected': 'infectado', 'status.healthy': 'sano',
+      'status.immune': 'inmune', 'status.vaccinated': 'vacunado', 'status.infected': 'infectado', 'status.healthy': 'sano',
 
       'card.organWild': 'Órgano comodín', 'card.virus': 'Virus {c}', 'card.virusWild': 'Virus comodín',
       'card.medicine': 'Medicina {c}', 'card.medicineWild': 'Medicina comodín',
       'card.sub.organ': 'Colócalo en tu cuerpo', 'card.sub.virus': 'Infecta un órgano rival',
-      'card.sub.medicine': 'Cura o inmuniza tu órgano',
+      'card.sub.medicine': 'Cura, vacuna o inmuniza tu órgano',
 
       'tr.contagio.title': 'Contagio', 'tr.contagio.desc': 'Pasa tus virus a órganos rivales sanos del mismo color.',
       'tr.transplante.title': 'Trasplante', 'tr.transplante.desc': 'Cambia uno de tus órganos por el de un rival (mismo color, no inmunes).',
@@ -78,8 +78,8 @@
 
       'help.title': 'Reglas rápidas',
       'help.organ': '<b>Órgano:</b> colócalo en un hueco vacío de tu color (o cualquiera si es comodín).',
-      'help.virus': '<b>Virus:</b> infecta un órgano rival sano de ese color; un segundo virus lo destruye. No afecta órganos inmunes.',
-      'help.medicine': '<b>Medicina:</b> cura tu órgano infectado, o inmuniza uno sano. No afecta órganos ya inmunes.',
+      'help.virus': '<b>Virus:</b> infecta un órgano rival sano de ese color; un segundo virus lo destruye. Si está vacunado, solo le quita la vacuna. No afecta órganos inmunes.',
+      'help.medicine': '<b>Medicina:</b> cura tu órgano infectado. Sobre uno sano lo <b>vacuna</b>; una <b>segunda medicina</b> lo deja <b>inmune</b>. No afecta órganos ya inmunes.',
       'help.action': '<b>Acciones:</b> Contagio, Trasplante, Ladrón de Órganos, Guante de Látex y Error Médico alteran el tablero — lee cada carta.',
       'help.win': 'Ganas con <b>4 órganos de colores distintos</b>, todos sanos o inmunes (ninguno infectado).',
       'help.close': 'Entendido', 'help.leave': 'Abandonar partida', 'help.leaveConfirm': '¿Abandonar la partida?',
@@ -91,6 +91,8 @@
       /* registro de la partida */
       'log.deckRecycled': 'El mazo se recicla desde el descarte.',
       'log.organ': '{a} coloca un órgano en {c}.',
+      'log.vaccinate': '{a} vacuna su {c}.',
+      'log.unvaccinate': '{a} quita la vacuna del {c} de {o}.',
       'log.immunize': '{a} inmuniza su {c}.',
       'log.heal': '{a} cura su {c}.',
       'log.infect': '{a} infecta el {c} de {o}.',
@@ -107,6 +109,8 @@
       'log.skipGlove': '{a} sale del Guante (sin respuesta).',
       /* variantes cuando el que actúa (.you) o el afectado (.toyou) eres tú */
       'log.organ.you': 'Colocas un órgano en {c}.',
+      'log.vaccinate.you': 'Vacunas tu {c}.',
+      'log.unvaccinate.you': 'Quitas la vacuna del {c} de {o}.', 'log.unvaccinate.toyou': '{a} quita la vacuna de tu {c}.',
       'log.immunize.you': 'Inmunizas tu {c}.',
       'log.heal.you': 'Curas tu {c}.',
       'log.infect.you': 'Infectas el {c} de {o}.', 'log.infect.toyou': '{a} infecta tu {c}.',
@@ -143,7 +147,7 @@
       'rules.title': 'How to play',
       'rules.1': 'Place <b>organs</b> of 4 different colors in front of you.',
       'rules.2': 'Throw a <b>virus</b> at a rival organ of the same color to infect it; a second virus destroys it.',
-      'rules.3': 'Use <b>medicine</b> on your own organ to heal or immunize it.',
+      'rules.3': 'Use <b>medicine</b> on your own organ: it heals an infected one, vaccinates a healthy one, and a <b>second medicine</b> makes it immune.',
       'rules.4': '<b>Action</b> cards shake up the board: thefts, contagion, swaps.',
       'rules.5': 'The first to complete a body with 4 healthy or immune organs wins.',
       'mode.label': 'Game mode',
@@ -176,12 +180,12 @@
 
       'color.heart': 'Heart', 'color.brain': 'Brain', 'color.gut': 'Stomach', 'color.bone': 'Bone',
       'type.organ': 'Organ', 'type.virus': 'Virus', 'type.medicine': 'Medicine', 'type.treatment': 'Action',
-      'status.immune': 'immune', 'status.infected': 'infected', 'status.healthy': 'healthy',
+      'status.immune': 'immune', 'status.vaccinated': 'vaccinated', 'status.infected': 'infected', 'status.healthy': 'healthy',
 
       'card.organWild': 'Wild organ', 'card.virus': '{C} virus', 'card.virusWild': 'Wild virus',
       'card.medicine': '{C} medicine', 'card.medicineWild': 'Wild medicine',
       'card.sub.organ': 'Place it on your body', 'card.sub.virus': 'Infect a rival organ',
-      'card.sub.medicine': 'Heal or immunize your organ',
+      'card.sub.medicine': 'Heal, vaccinate or immunize your organ',
 
       'tr.contagio.title': 'Contagion', 'tr.contagio.desc': 'Pass your viruses to healthy rival organs of the same color.',
       'tr.transplante.title': 'Transplant', 'tr.transplante.desc': 'Swap one of your organs with a rival’s (same color, not immune).',
@@ -205,8 +209,8 @@
 
       'help.title': 'Quick rules',
       'help.organ': '<b>Organ:</b> place it in an empty slot of its color (any slot if it’s wild).',
-      'help.virus': '<b>Virus:</b> infects a healthy rival organ of that color; a second virus destroys it. It doesn’t affect immune organs.',
-      'help.medicine': '<b>Medicine:</b> heals your infected organ, or immunizes a healthy one. It doesn’t affect organs that are already immune.',
+      'help.virus': '<b>Virus:</b> infects a healthy rival organ of that color; a second virus destroys it. If it’s vaccinated, it only removes the vaccine. It doesn’t affect immune organs.',
+      'help.medicine': '<b>Medicine:</b> heals your infected organ. On a healthy one it <b>vaccinates</b> it; a <b>second medicine</b> makes it <b>immune</b>. It doesn’t affect organs that are already immune.',
       'help.action': '<b>Actions:</b> Contagion, Transplant, Organ Thief, Latex Glove and Medical Error change the board — read each card.',
       'help.win': 'You win with <b>4 organs of different colors</b>, all healthy or immune (none infected).',
       'help.close': 'Got it', 'help.leave': 'Leave game', 'help.leaveConfirm': 'Leave the game?',
@@ -217,6 +221,8 @@
 
       'log.deckRecycled': 'The deck is reshuffled from the discard pile.',
       'log.organ': '{a} places an organ on {c}.',
+      'log.vaccinate': '{a} vaccinates their {c}.',
+      'log.unvaccinate': '{a} removes the vaccine from {o}’s {c}.',
       'log.immunize': '{a} immunizes their {c}.',
       'log.heal': '{a} heals their {c}.',
       'log.infect': '{a} infects {o}’s {c}.',
@@ -232,6 +238,8 @@
       'log.skipTurn': '{a} loses their turn (no response).',
       'log.skipGlove': '{a} is taken out of the Glove (no response).',
       'log.organ.you': 'You place an organ on {c}.',
+      'log.vaccinate.you': 'You vaccinate your {c}.',
+      'log.unvaccinate.you': 'You remove the vaccine from {o}’s {c}.', 'log.unvaccinate.toyou': '{a} removes the vaccine from your {c}.',
       'log.immunize.you': 'You immunize your {c}.',
       'log.heal.you': 'You heal your {c}.',
       'log.infect.you': 'You infect {o}’s {c}.', 'log.infect.toyou': '{a} infects your {c}.',
