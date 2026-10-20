@@ -1117,6 +1117,58 @@
     el.classList.toggle('error', !!isError);
   }
 
+  /* ---- Invitar por enlace ---- */
+  var SHARE_BASE = 'https://cristiya.github.io/anticuerpos/';
+  function shareUrl(code){
+    /* en la web se usa su propia dirección; en la app Android (o en local) la oficial */
+    var web = /^https?:$/.test(location.protocol) && !/^(localhost|127\.|\[::1\])/.test(location.hostname);
+    return (web ? location.origin+location.pathname : SHARE_BASE) + '?sala=' + encodeURIComponent(code);
+  }
+  function applyInvite(){
+    var code = '';
+    try{ var q = new URLSearchParams(location.search); code = String(q.get('sala')||q.get('room')||'').trim().toUpperCase(); }catch(e){}
+    if(!/^[A-Z0-9]{4}$/.test(code)) return null;
+    document.querySelector('#modeSelect button[data-mode="online"]').click();
+    document.getElementById('joinRow').hidden = false;
+    document.getElementById('codeInput').value = code;
+    var nameInput = document.getElementById('nameInput');
+    onlineHint(T(nameInput.value ? 'invite.hintName' : 'invite.hint', {c:code}));
+    try{ history.replaceState(null, '', location.pathname); }catch(e){}   /* el enlace no se queda en la barra */
+    /* en pantallas pequeñas el código y el botón quedan bajo la ilustración: se baja hasta ellos */
+    setTimeout(function(){
+      var row = document.getElementById('joinRow');
+      if(row && row.scrollIntoView) row.scrollIntoView({block:'center'});
+      if(!nameInput.value) nameInput.focus({preventScroll:true});
+    }, 300);
+    return code;
+  }
+  function copyText(text, done){
+    function legacy(){
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try{ ok = document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta);
+      if(ok) done(); else window.prompt(T('share.copyPrompt'), text);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, legacy);
+    else legacy();
+  }
+  function shareRoom(){
+    if(!onlineRoomCode) return;
+    var url = shareUrl(onlineRoomCode), text = T('share.text', {c:onlineRoomCode});
+    var copied = function(){ toast(T('share.copied'), 2600); };
+    if(navigator.share){
+      navigator.share({title:'Anticuerpos', text:text, url:url}).catch(function(err){
+        if(err && err.name==='AbortError') return;   /* el usuario cerró el menú: no hay nada que hacer */
+        copyText(url, copied);
+      });
+    } else {
+      copyText(url, copied);
+    }
+  }
+  document.getElementById('btnShare').addEventListener('click', function(){ Sfx.play('tap'); shareRoom(); });
+
   /* ================= FIREBASE / ONLINE ================= */
   var fbDb = null;
   var onlineRoomCode = null;
@@ -1614,6 +1666,10 @@
       enterLobby();
     }).catch(function(){});
   }
-  tryAutoRejoin();
+  /* Si se abre un enlace de invitación (?sala=ABCD) se prepara la unión a esa sala; si ya estabas
+     en esa misma sala se vuelve a entrar sola, y si estabas en otra, la invitación manda. */
+  var invitedCode = applyInvite();
+  var savedRoomNow = null; try{ savedRoomNow = localStorage.getItem('anticuerpos_room'); }catch(e){}
+  if(!invitedCode || invitedCode===savedRoomNow) tryAutoRejoin();
 
 })();
