@@ -46,7 +46,10 @@
     transplante: svgWrap('<path d="M4 8h13" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M13.2 4.4l4 3.6-4 3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 16H7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M10.8 19.6l-4-3.6 4-3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
     ladron: svgWrap('<rect x="4" y="13.2" width="7" height="6.8" rx="1.4" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M14.2 4v9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M11 10l3.2 3 3.2-3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
     guante: svgWrap('<circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6.2 17.8L17.8 6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/>'),
-    error: svgWrap('<path d="M8 3c0 4.4 8 5.6 8 9s-8 4.6-8 9M16 3c0 4.4-8 5.6-8 9s8 4.6 8 9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/><path d="M9.2 6.4h5.6M9.2 17.6h5.6M8.6 12h6.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>')
+    error: svgWrap('<path d="M8 3c0 4.4 8 5.6 8 9s-8 4.6-8 9M16 3c0 4.4-8 5.6-8 9s8 4.6 8 9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/><path d="M9.2 6.4h5.6M9.2 17.6h5.6M8.6 12h6.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
+    barrera: svgWrap('<path d="M12 3.2l7.2 2.7v5.3c0 4.5-3 8.1-7.2 9.4-4.2-1.3-7.2-4.9-7.2-9.4V5.9z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-dasharray="3 2.2" fill="none"/><circle cx="12" cy="11.6" r="2.8" fill="currentColor"/>'),
+    inmuno: svgWrap('<g transform="rotate(-45 12 12)"><rect x="7.2" y="9.4" width="9" height="5.2" rx="1.3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16.2 12h5M7.2 12H3.6M3.6 9.6v4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 12h3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>'),
+    regen: svgWrap('<path d="M12 21v-9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M12 12.2c0-4.4 3-7 7.4-7 0 4.4-3 7-7.4 7z" fill="currentColor"/><path d="M12 15c0-3.2-2.2-5-5.8-5 0 3.4 2.2 5 5.8 5z" fill="currentColor"/>')
   };
   var DECK_ICON = svgWrap('<path d="M7 4h7l4 4v12H7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/><path d="M14 4v4h4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/><path d="M9.5 13a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.8-1.1 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="19.1" r=".9" fill="currentColor"/>');
 
@@ -65,7 +68,7 @@
     deck.push({id:id++, type:'organ', color:'wild'});
     deck.push({id:id++, type:'virus', color:'wild'});
     deck.push({id:id++, type:'medicine', color:'wild'});
-    [['contagio',2],['transplante',3],['ladron',3],['guante',2],['error',3]].forEach(function(pair){
+    [['contagio',2],['transplante',3],['ladron',3],['guante',2],['error',3],['barrera',2],['inmuno',2],['regen',2]].forEach(function(pair){
       for(var i=0;i<pair[1];i++) deck.push({id:id++, type:'treatment', kind:pair[0]});
     });
     return shuffle(deck);
@@ -88,6 +91,18 @@
   function glovePending(){ return !!state && !!state.gloveFor && state.gloveFor.length>0; }
   function isHumanTurn(){ return !!state && !state.over && !glovePending() && currentPlayer().id===MY_ID; }
   function opponentsOf(p){ return state.players.filter(function(o){ return o.id!==p.id; }); }
+
+  /* Barrera: el órgano protegido no puede ser infectado, robado ni cambiado hasta el próximo turno de su dueño.
+     Se guarda como el turnCount en que caduca (el turnCount sube con cada turno, también online). */
+  function barrierActive(s){ return !!(s && s.barrier && s.barrier>state.turnCount); }
+  function hasBarrier(p){ return COLORS.some(function(c){ return barrierActive(p.board[c]); }); }
+  /* Doctores: cada asiento tiene un poder pasivo (el asiento 5 repite el 1.º). Todos roban 1 carta al cumplir su condición. */
+  var POWERS = 4;
+  function powerOf(p){ var i = state.players.indexOf(p); return i<0 ? 0 : i%POWERS; }
+  function powerDraw(actor, idx){
+    if(powerOf(actor)!==idx) return;
+    if(drawOne(actor)) addLog('power', {a:actor.name, ai:actor.id, pw:idx});
+  }
 
   function drawOne(player){
     if(state.deck.length===0){
@@ -115,6 +130,7 @@
     if(typeof entry==='string') return entry;   /* mensajes de versiones anteriores */
     var p = {}; for(var k in (entry.p||{})) p[k] = entry.p[k];
     if(p.c) p.c = colorLabel(p.c);
+    if(p.pw!==undefined) p.pw = T('power.'+p.pw+'.name');
     var key = 'log.'+entry.k;
     /* si el que actúa (o el afectado) eres tú, se usa la frase en segunda persona */
     if(p.ai && p.ai===MY_ID && hasT(key+'.you')) key += '.you';
@@ -140,7 +156,7 @@
       opponentsOf(actor).forEach(function(p){
         COLORS.forEach(function(c){
           var s=p.board[c];
-          if(!s || s.status==='immune') return;
+          if(!s || s.status==='immune' || barrierActive(s)) return;
           if(card.color==='wild' || s.color===card.color) out.push({playerId:p.id, slot:c});
         });
       });
@@ -152,7 +168,7 @@
     return COLORS.some(function(c){
       var s=player.board[c];
       if(!s || s.status!=='infected') return false;
-      return opponentsOf(player).some(function(p){ var t=p.board[c]; return t && t.status==='healthy'; });
+      return opponentsOf(player).some(function(p){ var t=p.board[c]; return t && t.status==='healthy' && !barrierActive(t); });
     });
   }
   function boardStrength(p){
@@ -163,18 +179,36 @@
     var opps = opponentsOf(actor);
     if(card.kind==='guante') return [{label:T('opt.guante'), choice:{}}];
     if(card.kind==='contagio') return contagionHasEffect(actor) ? [{label:T('opt.contagio'), choice:{}}] : [];
-    if(card.kind==='error') return opps.map(function(o){ return {label:T('opt.error',{n:o.name}), choice:{playerId:o.id}}; });
+    if(card.kind==='error') return opps.filter(function(o){ return !hasBarrier(o); }).map(function(o){ return {label:T('opt.error',{n:o.name}), choice:{playerId:o.id}}; });
+    if(card.kind==='barrera'){
+      return COLORS.filter(function(c){ var s=actor.board[c]; return s && s.status!=='immune' && !barrierActive(s); })
+        .map(function(c){ return {label:T('opt.barrera',{c:colorLabel(c), s:statusLabel(actor.board[c].status)}), choice:{color:c}}; });
+    }
+    if(card.kind==='inmuno'){
+      var outI=[];
+      opps.forEach(function(o){ COLORS.forEach(function(c){
+        var s=o.board[c];
+        if(s && (s.status==='immune' || s.status==='vaccinated') && !barrierActive(s)) outI.push({label:T('opt.inmuno',{c:colorLabel(c), s:statusLabel(s.status), n:o.name}), choice:{playerId:o.id, color:c}});
+      }); });
+      return outI;
+    }
+    if(card.kind==='regen'){
+      var inDiscard = state.discard.filter(function(d){ return d.type==='organ'; });
+      return COLORS.filter(function(c){
+        return !actor.board[c] && inDiscard.some(function(d){ return d.color===c || d.color==='wild'; });
+      }).map(function(c){ return {label:T('opt.regen',{c:colorLabel(c)}), choice:{color:c}}; });
+    }
     if(card.kind==='ladron'){
       var out=[];
       opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && o.board[c].status!=='infected' && o.board[c].status!=='immune' && !actor.board[c]) out.push({label:T('opt.ladron',{c:colorLabel(c), s:statusLabel(o.board[c].status), n:o.name}), choice:{playerId:o.id, color:c}});
+        if(o.board[c] && o.board[c].status!=='infected' && o.board[c].status!=='immune' && !barrierActive(o.board[c]) && !actor.board[c]) out.push({label:T('opt.ladron',{c:colorLabel(c), s:statusLabel(o.board[c].status), n:o.name}), choice:{playerId:o.id, color:c}});
       }); });
       return out;
     }
     if(card.kind==='transplante'){
       var out2=[];
       opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && actor.board[c] && o.board[c].status!=='immune' && actor.board[c].status!=='immune') out2.push({label:T('opt.transplante',{c:colorLabel(c), n:o.name}), choice:{playerId:o.id, color:c}});
+        if(o.board[c] && actor.board[c] && o.board[c].status!=='immune' && actor.board[c].status!=='immune' && !barrierActive(o.board[c])) out2.push({label:T('opt.transplante',{c:colorLabel(c), n:o.name}), choice:{playerId:o.id, color:c}});
       }); });
       return out2;
     }
@@ -192,8 +226,8 @@
       var s1 = actor.board[target.slot];
       /* sano + medicina = vacunado; vacunado + segunda medicina = inmune */
       if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); }
-      else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); }
-      else if(s1.status==='infected'){ s1.status='healthy'; addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); }
+      else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
+      else if(s1.status==='infected'){ s1.status='healthy'; addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
@@ -203,7 +237,8 @@
         owner.board[target.slot]=null;
         /* el órgano destruido vuelve al descarte para que el mazo no se agote */
         if(s2.id!=null) state.discard.push({id:s2.id, type:'organ', color:s2.wild?'wild':s2.color});
-        addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
+        addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id});
+        powerDraw(actor, 2); }
     }
     /* un órgano jugado se queda en el tablero; solo vuelve al descarte si lo destruyen (más arriba) */
     if(card.type!=='organ') state.discard.push(card);
@@ -223,7 +258,7 @@
       COLORS.forEach(function(c){
         var mine = actor.board[c];
         if(mine && mine.status==='infected'){
-          var target = opponentsOf(actor).find(function(p){ var t=p.board[c]; return t && t.status==='healthy'; });
+          var target = opponentsOf(actor).find(function(p){ var t=p.board[c]; return t && t.status==='healthy' && !barrierActive(t); });
           if(target){ target.board[c].status='infected'; mine.status='healthy'; addLog('contagion', {a:actor.name, ai:actor.id, c:c, o:target.name, oi:target.id}); }
         }
       });
@@ -236,10 +271,30 @@
       actor.board[choice.color] = opp2.board[choice.color];
       opp2.board[choice.color] = null;
       addLog('steal', {a:actor.name, ai:actor.id, c:choice.color, o:opp2.name, oi:opp2.id});
+      powerDraw(actor, 3);
     } else if(card.kind==='transplante'){
       var opp3 = state.players.find(function(p){ return p.id===choice.playerId; });
       var t = actor.board[choice.color]; actor.board[choice.color]=opp3.board[choice.color]; opp3.board[choice.color]=t;
       addLog('transplant', {a:actor.name, ai:actor.id, c:choice.color, o:opp3.name, oi:opp3.id});
+      powerDraw(actor, 3);
+    } else if(card.kind==='barrera'){
+      actor.board[choice.color].barrier = state.turnCount + state.players.length;
+      addLog('barrier', {a:actor.name, ai:actor.id, c:choice.color});
+    } else if(card.kind==='inmuno'){
+      var opp4 = state.players.find(function(p){ return p.id===choice.playerId; });
+      var s4 = opp4.board[choice.color];
+      s4.status = s4.status==='immune' ? 'vaccinated' : 'healthy';
+      addLog('weaken', {a:actor.name, ai:actor.id, c:choice.color, o:opp4.name, oi:opp4.id});
+    } else if(card.kind==='regen'){
+      /* el órgano vuelve del descarte: primero uno de su color, si no un comodín */
+      var di = state.discard.findIndex(function(d){ return d.type==='organ' && d.color===choice.color; });
+      if(di<0) di = state.discard.findIndex(function(d){ return d.type==='organ' && d.color==='wild'; });
+      if(di>-1){
+        var back = state.discard.splice(di,1)[0];
+        actor.board[choice.color] = {id: back.id, color: choice.color, wild: back.color==='wild', status:'healthy'};
+        addLog('regen', {a:actor.name, ai:actor.id, c:choice.color});
+        powerDraw(actor, 3);
+      }
     }
   }
   function discardAndRedraw(player, cardIds){
@@ -258,7 +313,7 @@
 
   /* ================= LOCAL MODE TURN FLOW ================= */
   function startGameLocal(numBots){
-    GAME_MODE = 'local'; MY_ID = 'human'; winShown = false; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = [];
+    GAME_MODE = 'local'; MY_ID = 'human'; winShown = false; powerToastShown = false; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = [];
     botTimer = null;
     var players = [newPlayer('human',T('you'),false)];
     for(var i=0;i<numBots;i++) players.push(newPlayer('bot'+i, botNames()[i], true));
@@ -317,6 +372,13 @@
     }
     for(i=0;i<bot.hand.length;i++){
       card = bot.hand[i];
+      if(card.type==='treatment' && card.kind==='regen'){
+        var ro = getTreatmentOptions(bot, card);
+        if(ro.length) return {type:'play', card:card, target:ro[0].choice};
+      }
+    }
+    for(i=0;i<bot.hand.length;i++){
+      card = bot.hand[i];
       if(card.type==='medicine'){
         targets = getValidTargets(bot, card).filter(function(t){ return bot.board[t.slot].status==='infected'; });
         if(targets.length) return {type:'play', card:card, target:targets[0]};
@@ -351,6 +413,18 @@
         if(card.kind==='error'){
           var worse = ranked.find(function(o){ return boardStrength(o) > boardStrength(bot); });
           if(worse) return {type:'play', card:card, target:{playerId:worse.id}};
+        }
+        if(card.kind==='inmuno'){
+          var io = getTreatmentOptions(bot, card);
+          if(io.length){
+            var strength = function(opt){ var o = state.players.find(function(p){ return p.id===opt.choice.playerId; }); return boardStrength(o); };
+            io.sort(function(a,b){ return strength(b)-strength(a); });
+            return {type:'play', card:card, target:io[0].choice};
+          }
+        }
+        if(card.kind==='barrera'){
+          var bo = getTreatmentOptions(bot, card).filter(function(o){ var st=bot.board[o.choice.color].status; return st==='infected' || st==='vaccinated'; });
+          if(bo.length) return {type:'play', card:card, target:bo[0].choice};
         }
         if(card.kind==='ladron'){
           var opts = getTreatmentOptions(bot, card);
@@ -402,7 +476,8 @@
 
   /* ================= RENDER ================= */
   function typeLabel(type){ return T('type.'+type); }
-  var SHIELD_OUTLINE = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.4l6.6 2.5v5.2c0 4-2.7 7.3-6.6 8.5-3.9-1.2-6.6-4.5-6.6-8.5V5.9z" fill="#fff" fill-opacity=".85" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  var BARRIER_ICON = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.6" stroke-dasharray="3.4 2.6"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg>';
+  var SHIELD_OUTLINE ='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3.4l6.6 2.5v5.2c0 4-2.7 7.3-6.6 8.5-3.9-1.2-6.6-4.5-6.6-8.5V5.9z" fill="#fff" fill-opacity=".85" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
   var SHIELD_ICON = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 2.8v5.6c0 4.6-3.1 8.4-7.5 9.6-4.4-1.2-7.5-5-7.5-9.6V5.8z" fill="currentColor"/><path d="M8.6 12.2l2.5 2.5 4.4-4.9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function cardColorVar(color){ return color==='wild' ? null : '--c-'+color; }
   function cardTitle(card){
@@ -427,6 +502,7 @@
     opts = opts||{};
     var cls = ['card', card.type];
     if(card.color==='wild') cls.push('wild');
+    if(card.type==='treatment') cls.push('k-'+card.kind);
     if(opts.selected) cls.push('selected');
     if(opts.marked) cls.push('marked');
     if(opts.enter) cls.push('enter');
@@ -470,6 +546,7 @@
     if(s && s.status==='infected') badge = '<div class="badge virus-badge">'+virusIcon()+'</div>';
     if(s && s.status==='immune') badge = '<div class="badge immune-badge">'+SHIELD_ICON+'</div>';
     if(s && s.status==='vaccinated') badge = '<div class="badge immune-badge vaccine-badge">'+SHIELD_OUTLINE+'</div>';
+    if(barrierActive(s)){ cls.push('barrier'); badge += '<div class="badge barrier-badge">'+BARRIER_ICON+'</div>'; }
     var label = colorLabel(color) + (s ? ' · '+statusLabel(s.status) : '');
     return '<button class="'+cls.join(' ')+'" data-owner="'+owner.id+'" data-slot="'+color+'"'+styleAttr+' aria-label="'+escapeHtml(owner.name)+': '+label+'">'+
       '<div class="slot-icon">'+icon+'</div>'+badge+
@@ -555,11 +632,11 @@
   /* el navegador solo deja sonar tras un gesto del usuario */
   document.addEventListener('pointerdown', function(){ Sfx.unlock(); }, {once:true, passive:true});
 
-  var prevSlots = null, prevCounts = null, lastTurnSound = null;
+  var prevSlots = null, prevCounts = null, lastTurnSound = null, powerToastShown = false;
   var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function slotSnapshot(){
     var m = {};
-    state.players.forEach(function(p){ COLORS.forEach(function(c){ m[p.id+':'+c] = p.board[c] ? p.board[c].status : ''; }); });
+    state.players.forEach(function(p){ COLORS.forEach(function(c){ var s = p.board[c]; m[p.id+':'+c] = s ? s.status + (barrierActive(s) ? '!' : '') : ''; }); });
     return m;
   }
   function slotEl(key){
@@ -592,8 +669,15 @@
     var changes = [];
     Object.keys(cur).forEach(function(k){
       if(prev[k]===undefined || prev[k]===cur[k]) return;
-      var type = !cur[k] || prev[k]==='vaccinated'&&cur[k]==='healthy' ? 'destroy' : !prev[k] ? 'place' : cur[k]==='infected' ? 'infect' : (cur[k]==='immune' || cur[k]==='vaccinated') ? 'shield' : 'cure';
-      changes.push({key:k, type:type, to:cur[k]});
+      /* el estado lleva un "!" cuando el órgano tiene una barrera activa */
+      var ps = prev[k].replace('!',''), cs = cur[k].replace('!',''), pb = prev[k].indexOf('!')>-1, cb = cur[k].indexOf('!')>-1, type;
+      if(ps===cs){ if(cb && !pb) type = 'shield'; else return; }
+      else if(!cs || (ps==='immune' && cs==='vaccinated') || (ps==='vaccinated' && cs==='healthy')) type = 'destroy';
+      else if(!ps) type = 'place';
+      else if(cs==='infected') type = 'infect';
+      else if(cs==='immune' || cs==='vaccinated') type = 'shield';
+      else type = 'cure';
+      changes.push({key:k, type:type, to:cs});
     });
     /* sonido de la jugada: el efecto más fuerte de los que cambiaron */
     if(changes.length){
@@ -649,6 +733,12 @@
     renderActionBar();
     updateStatusLine();
     animatePlays(before);
+    /* al empezar, recuerda qué doctor eres y cuál es tu poder */
+    if(!powerToastShown && state.log.length<=1 && !state.over && me()){
+      powerToastShown = true;
+      var pwi = powerOf(me());
+      toast(T('power.mine',{p:T('power.'+pwi+'.name'), d:T('power.'+pwi+'.desc')}), 5200);
+    }
   }
   function renderTopbar(){
     var t = document.getElementById('turnIndicator');
@@ -668,7 +758,7 @@
       var handCount = p.hand ? p.hand.length : ((state.handCounts && state.handCounts[p.id]) || 0);
       var backs = ''; for(var b=0;b<handCount;b++) backs += '<span class="cardback"></span>';
       return '<div class="oppcard'+active+'">'+
-        '<div class="opphead"><div class="oppwho">'+avatarHTML(state.players.indexOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
+        '<div class="opphead"><div class="oppwho" title="'+escapeHtml(T('power.'+powerOf(p)+'.name')+': '+T('power.'+powerOf(p)+'.desc'))+'">'+avatarHTML(state.players.indexOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
         '<div class="oppslots">'+slots+'</div>'+
       '</div>';
     }).join('');
@@ -898,6 +988,7 @@
 
   function showHelp(){
     var root = document.getElementById('overlayRoot');
+    var tEl = document.getElementById('toastEl'); if(tEl) tEl.classList.remove('show');
     root.innerHTML = '<div class="overlay" id="helpOverlay"><div class="modal">'+
       '<h3>'+T('help.title')+'</h3>'+
       '<ul>'+
@@ -906,6 +997,9 @@
       '<li>'+T('help.medicine')+'</li>'+
       '<li>'+T('help.action')+'</li>'+
       '<li>'+T('help.win')+'</li>'+
+      '<li>'+T('help.doctors')+'<ul class="plist">'+[0,1,2,3].map(function(i){
+        return '<li'+(i===powerOf(me()) ? ' class="mine-power"' : '')+'><b>'+T('power.'+i+'.name')+':</b> '+T('power.'+i+'.desc')+'</li>';
+      }).join('')+'</ul></li>'+
       '</ul>'+
       '<button id="helpClose">'+T('help.close')+'</button>'+
       '<button id="helpSound" class="modal-sound"></button>'+
@@ -1135,7 +1229,7 @@
   }
 
   function enterLobby(){
-    winShown = false; lastLogShown = null; seenCardIds = {};
+    winShown = false; powerToastShown = false; lastLogShown = null; seenCardIds = {};
     showScreen('lobby');
     if(onlineUnsub) onlineUnsub();
     startHandListeners();

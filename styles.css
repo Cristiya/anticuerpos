@@ -290,6 +290,17 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
   background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%) 150% 0/250% 100% no-repeat;animation:shimmer 3.4s ease-in-out infinite;}
 @keyframes shimmer{0%,55%{background-position:150% 0;}100%{background-position:-60% 0;}}
 
+/* títulos largos (Inmunosupresor / Immunosuppressant) */
+.card-title{overflow-wrap:anywhere;}
+.card.k-inmuno .card-title{font-size:.7rem;}
+/* barrera activa y poderes de los doctores */
+.slot.barrier{box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);}
+.badge.barrier-badge{left:-6px;right:auto;background:var(--accent);color:var(--accent-ink);}
+.badge.barrier-badge svg{width:13px;height:13px;}
+.modal .plist{margin:6px 0 0;padding-left:16px;font-size:.8rem;}
+.modal .plist li.mine-power{color:var(--ink);background:color-mix(in srgb, var(--accent) 14%, transparent);border-radius:6px;padding:2px 6px;margin-left:-6px;}
+.modal{max-height:92vh;overflow-y:auto;}
+
 /* ---------- Animaciones de las jugadas ---------- */
 .fly-card{position:fixed;left:0;top:0;width:36px;height:48px;border-radius:8px;z-index:70;pointer-events:none;box-shadow:0 8px 16px -6px rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.7);}
 .slot{transition:background-color .25s, border-color .25s;}

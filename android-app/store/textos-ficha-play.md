@@ -16,13 +16,14 @@ Build a healthy body first! Infect, heal and play with friends or bots.
 
 Build a healthy body before your rivals do!
 
-Anticuerpos is a fast, tactical card game for your phone. Place organs in front of you, throw viruses at your rivals, heal your own organs and use powerful action cards to turn the game around. The first player to complete a body with 4 healthy organs wins.
+Anticuerpos is a fast, tactical card game for your phone. Place organs in front of you, throw pathogens at your rivals, protect your own organs with antibodies and use powerful action cards to turn the game around. The first player to complete a body with 4 healthy organs wins.
 
 HOW IT WORKS
 • Place organs of 4 different colors: heart, brain, lungs and kidney.
-• Infect a rival organ with a virus of the same color — a second virus destroys it.
-• Heal your infected organs with medicine, or immunize them so nothing can touch them.
-• Play action cards: Outbreak, Barter, Raid, Quarantine and Mutation change the whole board.
+• Infect a rival organ with a pathogen of the same color — a second pathogen destroys it.
+• Heal your infected organs with antibodies; a second antibody makes them immune.
+• Play action cards: Outbreak, Barter, Raid, Quarantine, Mutation, Barrier, Immunosuppressant and Regeneration change the whole board.
+• Each doctor at the table has a power of their own: draw a card when you heal, immunize, destroy or regenerate.
 
 PLAY YOUR WAY
 • This device: play against 1 to 4 bots, no connection needed to the game itself.
@@ -56,13 +57,14 @@ Anticuerpos: juego de cartas
 
 ¡Arma un cuerpo sano antes que tus rivales!
 
-Anticuerpos es un juego de cartas rápido y táctico para tu móvil. Coloca órganos frente a ti, lanza virus a tus rivales, cura los tuyos y usa cartas de acción para darle la vuelta a la partida. Gana el primero que complete un cuerpo con 4 órganos sanos.
+Anticuerpos es un juego de cartas rápido y táctico para tu móvil. Coloca órganos frente a ti, lanza patógenos a tus rivales, protege los tuyos con anticuerpos y usa cartas de acción para darle la vuelta a la partida. Gana el primero que complete un cuerpo con 4 órganos sanos.
 
 CÓMO SE JUEGA
 • Coloca órganos de 4 colores distintos: corazón, cerebro, pulmón y riñón.
-• Infecta un órgano rival con un virus del mismo color: un segundo virus lo destruye.
-• Cura tus órganos infectados con medicina, o inmunízalos para que nada pueda tocarlos.
-• Juega cartas de acción: Brote, Trueque, Saqueo, Cuarentena y Mutación cambian todo el tablero.
+• Infecta un órgano rival con un patógeno del mismo color: un segundo patógeno lo destruye.
+• Cura tus órganos infectados con anticuerpos; un segundo anticuerpo los deja inmunes.
+• Juega cartas de acción: Brote, Trueque, Saqueo, Cuarentena, Mutación, Barrera, Inmunosupresor y Regeneración cambian todo el tablero.
+• Cada doctor de la mesa tiene un poder propio: roba una carta al curar, inmunizar, destruir o regenerar.
 
 JUEGA A TU MANERA
 • En este dispositivo: contra 1 a 4 bots, sin necesitar conexión para jugar.
