@@ -312,7 +312,113 @@
   }
 
   /* ================= LOCAL MODE TURN FLOW ================= */
+  /* ---- Tutorial de la primera partida ----
+     Una partida local guionizada contra un rival que solo hace lo que toca: se coloca un órgano, se cura
+     una infección y se infecta un órgano rival. La guía (#coach) y las marcas (.tut-hl) se calculan a partir
+     del estado, así que no hay que llevar la cuenta de los pasos. */
+  var TUTORIAL = false, TUT = {started:false, finished:false};
+  function tutDone(){ try{ return localStorage.getItem('anticuerpos_tut')==='1'; }catch(e){ return false; } }
+  function startTutorial(){
+    TUTORIAL = true; TUT = {started:false, finished:false};
+    GAME_MODE = 'local'; MY_ID = 'human'; winShown = false; powerToastShown = true; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = [];
+    botTimer = null; prevSlots = null; prevCounts = null;
+    var human = newPlayer('human', T('you'), false), bot = newPlayer('bot0', botNames()[0], true);
+    var id = 9000, mk = function(o){ o.id = id++; return o; };
+    human.hand = [mk({type:'organ', color:'heart'}), mk({type:'medicine', color:'heart'}), mk({type:'virus', color:'brain'})];
+    bot.board.brain = {id:id++, color:'brain', wild:false, status:'healthy'};
+    bot.hand = [mk({type:'virus', color:'heart'})];
+    var deck = []; for(var i=0;i<12;i++) deck.push(mk({type:'organ', color:'kidney'}));
+    deck.push(mk({type:'organ', color:'lung'}));   /* lo que roba el jugador al empezar su 2.º turno */
+    state = { players:[human, bot], deck:deck, discard:[], turn:0, turnCount:0, log:[], over:false, winnerId:null };
+    addLog('start');
+    showScreen('game');
+    beginTurn();
+  }
+  function tutStep(){
+    var h = state.players[0], b = state.players[1];
+    if(!TUT.started) return 'intro';
+    if(TUT.finished || (b.board.brain && b.board.brain.status==='infected')) return 'done';
+    if(!isHumanTurn()) return 'wait';
+    var sel = !!selection.cardId;
+    if(!h.board.heart) return sel ? 'place2' : 'place1';
+    if(h.board.heart.status==='infected') return sel ? 'heal2' : 'heal1';
+    return sel ? 'attack2' : 'attack1';
+  }
+  /* qué carta y qué hueco admite cada paso */
+  function tutCardOk(card){
+    var s = tutStep();
+    if(s==='place1' || s==='place2') return card.type==='organ' && card.color==='heart';
+    if(s==='heal1' || s==='heal2') return card.type==='medicine' && card.color==='heart';
+    if(s==='attack1' || s==='attack2') return card.type==='virus' && card.color==='brain';
+    return false;
+  }
+  function tutSlotOk(ownerId, slot){
+    var s = tutStep();
+    if(s==='place2' || s==='heal2') return ownerId===MY_ID && slot==='heart';
+    if(s==='attack2') return ownerId!==MY_ID && slot==='brain';
+    return false;
+  }
+  function tutorialSync(){
+    var coach = document.getElementById('coach');
+    if(!TUTORIAL || !state){ if(coach) coach.hidden = true; return; }
+    var step = tutStep();
+    if(step==='done' && !TUT.finished){ TUT.finished = true; try{ localStorage.setItem('anticuerpos_tut','1'); }catch(e){} }
+    Array.prototype.forEach.call(document.querySelectorAll('.tut-hl'), function(e){ e.classList.remove('tut-hl'); });
+    if(step==='done'){
+      /* el final es una ventana aparte: así el tablero no se encoge */
+      coach.hidden = true;
+      if(!TUT.modal){ TUT.modal = true; showTutorialEnd(); }
+      return;
+    }
+    var body = '<div class="coach-text">'+T('tut.'+step)+'</div>';
+    if(step==='intro') body += '<div class="coach-actions"><button class="coach-btn primary" data-tut="start">'+T('tut.start')+'</button></div>';
+    coach.innerHTML = body; coach.hidden = false;
+    /* marcas de lo que hay que tocar */
+    var target = null;
+    if(step==='place1' || step==='heal1' || step==='attack1'){
+      var c = me().hand.find(tutCardOk); if(c) target = document.querySelector('#hand .card[data-card-id="'+c.id+'"]');
+    } else if(step==='place2' || step==='heal2'){
+      target = document.querySelector('#myBoard .slot[data-slot="heart"]');
+    } else if(step==='attack2'){
+      target = document.querySelector('#opponents .slot[data-slot="brain"]');
+    }
+    if(target) target.classList.add('tut-hl');
+  }
+  function tutAction(act){
+    if(act==='start'){ TUT.started = true; render(); }
+    else if(act==='play'){ TUTORIAL = false; clearTimeout(botTimer); startGameLocal(1); }
+    else if(act==='exit'){ TUTORIAL = false; clearTimeout(botTimer); state = null; goToSetup(); }
+  }
+  document.getElementById('coach').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-tut]'); if(b) tutAction(b.getAttribute('data-tut'));
+  });
+  function showTutorialEnd(){
+    var root = document.getElementById('overlayRoot');
+    var tEl = document.getElementById('toastEl'); if(tEl) tEl.classList.remove('show');
+    root.innerHTML = '<div class="overlay"><div class="modal tut-modal">'+
+      '<h3>'+T('tut.doneTitle')+'</h3><p>'+T('tut.done')+'</p>'+
+      '<button data-tut="play">'+T('tut.play')+'</button>'+
+      '<button class="modal-sound" data-tut="exit">'+T('tut.exit')+'</button>'+
+      '</div></div>';
+    Array.prototype.forEach.call(root.querySelectorAll('[data-tut]'), function(b){
+      b.addEventListener('click', function(){ root.innerHTML = ''; tutAction(b.getAttribute('data-tut')); });
+    });
+  }
+  /* el rival del tutorial: infecta el corazón cuando está sano y, si no, pasa */
+  function tutorialBotTurn(bot){
+    var h = state.players[0];
+    if(bot.hand.length && h.board.heart && h.board.heart.status==='healthy'){
+      var card = bot.hand[0];
+      playCard(bot, card, {playerId:h.id, slot:'heart'});
+    } else {
+      addLog('pass', {a:bot.name, ai:bot.id});
+    }
+    render();
+    advanceTurn();
+  }
+
   function startGameLocal(numBots){
+    TUTORIAL = false;
     GAME_MODE = 'local'; MY_ID = 'human'; winShown = false; powerToastShown = false; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = [];
     botTimer = null;
     var players = [newPlayer('human',T('you'),false)];
@@ -325,7 +431,7 @@
   }
   function beginTurn(){
     var p = currentPlayer();
-    drawToHand(p);
+    if(!(TUTORIAL && p.isBot)) drawToHand(p);   /* en el tutorial el rival no roba: el guion es fijo */
     clearSelection();
     render();
     if(state.over) return;
@@ -347,6 +453,7 @@
     advanceTurn();
   }
   function runBotTurn(bot){
+    if(TUTORIAL){ tutorialBotTurn(bot); return; }
     var action = decideBotAction(bot);
     if(action.type==='play'){
       if(action.card.type==='treatment') playTreatment(bot, action.card, action.target||{});
@@ -461,6 +568,7 @@
   var lastLogShown = null;
   var seenCardIds = {};
   function toast(msg, ms){
+    if(document.querySelector('#overlayRoot .overlay')) return;   /* con una ventana abierta el aviso taparía su texto */
     var t = document.getElementById('toastEl');
     if(!t){ t=document.createElement('div'); t.id='toastEl'; t.className='toast'; t.setAttribute('role','status'); document.getElementById('app').appendChild(t); }
     t.textContent = msg;
@@ -733,6 +841,7 @@
     renderActionBar();
     updateStatusLine();
     animatePlays(before);
+    tutorialSync();
     /* al empezar, recuerda qué doctor eres y cuál es tu poder */
     if(!powerToastShown && state.log.length<=1 && !state.over && me()){
       powerToastShown = true;
@@ -919,6 +1028,7 @@
     }
     var card = me().hand.find(function(c){ return c.id===cardId; });
     if(!card) return;
+    if(TUTORIAL && selection.cardId!==cardId && !tutCardOk(card)){ toast(T('tut.wrong')); return; }
     if(selection.cardId===cardId){ clearSelection(); render(); return; }
     Sfx.play('tap');
     selection.cardId = cardId;
@@ -940,6 +1050,7 @@
     if(!card) return;
     var valid = (selection.targets||[]).some(function(t){ return t.playerId===ownerId && t.slot===slotColor; });
     if(!valid) return;
+    if(TUTORIAL && !tutSlotOk(ownerId, slotColor)){ toast(T('tut.wrong')); return; }
     playCard(me(), card, {playerId:ownerId, slot:slotColor});
     clearSelection();
     finishAction();
@@ -962,6 +1073,7 @@
   });
   document.getElementById('btnPass').addEventListener('click', function(){
     if(!isHumanTurn()) return;
+    if(TUTORIAL){ toast(T('tut.wrong')); return; }
     addLog('pass', {a:me().name, ai:MY_ID});
     if(GAME_MODE==='online') commitPassOnline(); else advanceTurn();
   });
@@ -973,6 +1085,7 @@
   }
   document.getElementById('btnDiscard').addEventListener('click', function(){
     if(!isHumanTurn()) return;
+    if(TUTORIAL){ toast(T('tut.wrong')); return; }
     if(!discardMode){
       discardMode = true; discardMarks=[]; clearSelection(); render();
       setStatus(T('status.discardMode'));
@@ -1059,7 +1172,15 @@
     document.getElementById('screenLobby').hidden = name!=='lobby';
     document.getElementById('screenGame').hidden = name!=='game';
   }
-  function goToSetup(){ showScreen('setup'); }
+  function goToSetup(){
+    TUTORIAL = false;
+    var coach = document.getElementById('coach'); if(coach) coach.hidden = true;
+    refreshTutorialButton();
+    showScreen('setup');
+  }
+  function refreshTutorialButton(){
+    var b = document.getElementById('btnTutorial'); if(b) b.classList.toggle('new', !tutDone());
+  }
 
   /* ================= SETUP SCREEN WIRING ================= */
   var FAN_ROT = [-13,-4.5,4.5,13], FAN_DY = [9,0,0,9];
@@ -1094,6 +1215,8 @@
   document.getElementById('btnStartLocal').addEventListener('click', function(){
     startGameLocal(chosenOpponents);
   });
+  document.getElementById('btnTutorial').addEventListener('click', function(){ Sfx.play('tap'); startTutorial(); });
+  refreshTutorialButton();
 
   var savedName = localStorage.getItem('anticuerpos_name');
   if(savedName) document.getElementById('nameInput').value = savedName;

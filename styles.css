@@ -51,6 +51,9 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .setup::after{width:240px;height:240px;bottom:-90px;right:-90px;background:color-mix(in srgb, var(--c-lung) 38%, transparent);}
 .setup > *{position:relative;z-index:1;}
 .setup > .lang-toggle{position:absolute;}
+/* los interruptores quedan por encima de la ilustración (si el contenido es más alto que la pantalla, ésta empieza arriba) */
+.setup > .lang-toggle,.setup > .sound-toggle{z-index:5;}
+.setup{padding-top:56px;}
 .setup .glyphs{display:flex;justify-content:center;align-items:flex-start;height:122px;margin:4px 0 2px;position:relative;}
 .fcard{width:66px;height:90px;margin:0 -6px;border-radius:15px;border:1.5px solid color-mix(in srgb, var(--gc) 55%, var(--line));
   background:linear-gradient(168deg, color-mix(in srgb, var(--gc) 30%, var(--surface)) 0%, var(--surface) 78%);
@@ -294,6 +297,15 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .card-title{overflow-wrap:anywhere;}
 .card.k-inmuno .card-title{font-size:.64rem;}
 .card.k-regen .card-title{font-size:.72rem;}
+/* tutorial: banner de guía y marca de lo que hay que tocar */
+.coach{flex:0 0 auto;margin:8px 10px 0;padding:10px 12px;border-radius:14px;background:color-mix(in srgb, var(--accent) 13%, var(--surface));border:1.5px solid color-mix(in srgb, var(--accent) 45%, var(--line));font-size:.8rem;line-height:1.45;box-shadow:var(--shadow);}
+.coach-text b{color:var(--accent-strong);}
+.coach-actions{display:flex;gap:8px;margin-top:8px;}
+.coach-btn{flex:1;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;font-size:.8rem;text-align:center;}
+.coach-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.tut-modal p{color:var(--ink-dim);font-size:.88rem;line-height:1.5;margin:0 0 14px;}
+.tut-hl{outline:3px solid var(--accent);outline-offset:3px;animation:pulse-target 1.1s ease-in-out infinite;position:relative;z-index:3;}
+.btn-tutorial.new{border-color:var(--accent);color:var(--accent-strong);background:color-mix(in srgb, var(--accent) 12%, var(--surface));}
 /* barrera activa y poderes de los doctores */
 .slot.barrier{box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);}
 .badge.barrier-badge{left:-6px;right:auto;background:var(--accent);color:var(--accent-ink);}
