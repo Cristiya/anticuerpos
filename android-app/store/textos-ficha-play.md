@@ -22,7 +22,7 @@ HOW IT WORKS
 • Place organs of 4 different colors: heart, brain, lungs and kidney.
 • Infect a rival organ with a pathogen of the same color — a second pathogen destroys it.
 • Heal your infected organs with antibodies; a second antibody makes them immune.
-• Play action cards: Outbreak, Barter, Raid, Quarantine, Mutation, Barrier, Immunosuppressant and Regeneration change the whole board.
+• Play action cards: Outbreak, Barter, Raid, Quarantine, Mutation, Barrier, Immune Breaker and Regeneration change the whole board.
 • Each doctor at the table has a power of their own: draw a card when you heal, immunize, destroy or regenerate.
 
 PLAY YOUR WAY
