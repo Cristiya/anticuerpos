@@ -240,6 +240,44 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .toast{position:fixed;left:50%;top:31%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:.8rem;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;box-shadow:var(--shadow);width:max-content;max-width:calc(100vw - 32px);text-align:center;line-height:1.35;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(4px);}
 
+/* ---------- Mejoras visuales de la partida ---------- */
+/* mesa: tapete con degradado y trama sutil */
+.game{background:
+  radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+  radial-gradient(color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 1.4px) 0 0/18px 18px,
+  var(--bg);}
+.topbar,.handbar{background:color-mix(in srgb, var(--surface) 92%, transparent);backdrop-filter:blur(6px);}
+.oppcard{box-shadow:0 8px 16px -12px rgba(16,38,34,.5);}
+.log,.pile{box-shadow:inset 0 1px 3px rgba(16,38,34,.12);}
+/* avatares de los rivales */
+.oppwho{display:flex;align-items:center;gap:7px;min-width:0;}
+.avatar{width:26px;height:26px;flex:0 0 auto;border-radius:50%;box-shadow:0 2px 5px -1px rgba(16,38,34,.45);}
+.oppcard.active .avatar{box-shadow:0 0 0 2.5px var(--accent), 0 2px 6px -1px rgba(16,38,34,.45);}
+/* mano en abanico con brillo */
+.card{transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg));transform-origin:50% 120%;overflow:hidden;}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(118deg, rgba(255,255,255,var(--shine,.42)) 0%, rgba(255,255,255,0) 38%);}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--shine:.1;}}
+:root[data-theme="dark"]{--shine:.1;}
+.card.selected{transform:translateY(-12px) rotate(0deg) scale(1.03);z-index:2;}
+.card:active{transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg)) scale(.97);}
+.card.marked{transform:translateY(4px) rotate(-2deg);}
+.hand{padding-top:18px;}
+/* estados de los órganos: infectado con esporas, inmune con aureola y destello */
+.slot{overflow:visible;}
+.slot.infected::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(circle at 22% 28%, color-mix(in srgb, var(--treatment) 80%, transparent) 0 2.6px, transparent 3.6px),
+    radial-gradient(circle at 86% 62%, color-mix(in srgb, var(--treatment) 80%, transparent) 0 2.2px, transparent 3.2px),
+    radial-gradient(circle at 72% 24%, color-mix(in srgb, var(--treatment) 65%, transparent) 0 1.6px, transparent 2.6px),
+    radial-gradient(circle at 10% 70%, color-mix(in srgb, var(--treatment) 65%, transparent) 0 1.6px, transparent 2.6px);
+  animation:spores 2.2s ease-in-out infinite;}
+@keyframes spores{0%,100%{opacity:.3;transform:scale(.96);}50%{opacity:1;transform:scale(1.04);}}
+.slot.immune{background:linear-gradient(140deg, color-mix(in srgb, var(--slot-color) 26%, var(--surface)), color-mix(in srgb, var(--slot-color) 9%, var(--surface)));
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--slot-color) 85%, transparent), 0 0 14px -3px color-mix(in srgb, var(--slot-color) 65%, transparent);}
+.slot.immune::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%) 150% 0/250% 100% no-repeat;animation:shimmer 3.4s ease-in-out infinite;}
+@keyframes shimmer{0%,55%{background-position:150% 0;}100%{background-position:-60% 0;}}
+
 /* ---------- Animaciones de las jugadas ---------- */
 .fly-card{position:fixed;left:0;top:0;width:36px;height:48px;border-radius:8px;z-index:70;pointer-events:none;box-shadow:0 8px 16px -6px rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.7);}
 .slot{transition:background-color .25s, border-color .25s;}
@@ -259,6 +297,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 
 @media (prefers-reduced-motion: reduce){
   .fly-card,.confetti-rain{display:none;}
+  .slot.infected::before,.slot.immune::after{animation:none;}
   .win-modal,.win-organ,.win-body::before{animation:none;}
   .slot.anim-place,.slot.anim-infect,.slot.anim-cure,.slot.anim-shield,.slot.anim-destroy,.pile.bump{animation:none;}
   .slot.infected,.slot.targetable,.win-modal .confetti span,.card.enter,.sheet,.fcard,.fvirus svg{animation:none;}

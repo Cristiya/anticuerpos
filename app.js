@@ -426,12 +426,31 @@
     if(opts.enter) cls.push('enter');
     var styleAttr = '';
     var v = card.type==='treatment' ? '--treatment' : cardColorVar(card.color);
-    if(v) styleAttr = ' style="--card-color:var('+v+')"';
+    var fan = opts.rot!==undefined ? ';--rot:'+opts.rot+'deg;--dy:'+opts.dy+'px' : '';
+    if(v) styleAttr = ' style="--card-color:var('+v+')'+fan+'"';
+    else if(fan) styleAttr = ' style="'+fan.slice(1)+'"';
     return '<button class="'+cls.join(' ')+'" data-card-id="'+card.id+'"'+styleAttr+' aria-label="'+cardTitle(card)+'. '+cardSub(card)+'">'+
       '<div class="card-head"><div class="card-top">'+cardIconHTML(card)+'</div><span class="card-kind">'+typeLabel(card.type)+'</span></div>'+
       '<div class="card-title">'+cardTitle(card)+'</div>'+
       '<div class="card-sub">'+cardSub(card)+'</div>'+
       '</button>';
+  }
+  /* avatares de los doctores rivales (uno por asiento) */
+  var AVATARS = [
+    {bg:'#0E8574', skin:'#F1C9A5', cap:'#2BB6A0', extra:''},
+    {bg:'#4A63D6', skin:'#C88F62', cap:'#6E5CD6', extra:'<circle cx="13.6" cy="15" r="2.1" fill="none" stroke="#16262A" stroke-width=".8"/><circle cx="18.4" cy="15" r="2.1" fill="none" stroke="#16262A" stroke-width=".8"/><path d="M15.7 15h.6" stroke="#16262A" stroke-width=".8"/>'},
+    {bg:'#C99423', skin:'#8A5A3B', cap:'#E25B4A', extra:'<path d="M9.5 23c0 3 1.6 4.6 3.5 4.6" stroke="#16262A" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="13.2" cy="27.8" r="1.2" fill="#16262A"/>'},
+    {bg:'#D6483F', skin:'#F6D5B8', cap:'#3E9B52', extra:'<circle cx="16" cy="5.4" r="1.5" fill="#3E9B52"/>'}
+  ];
+  function avatarHTML(i){
+    var a = AVATARS[((i%4)+4)%4];
+    return '<svg class="avatar" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="'+a.bg+'"/>'+
+      '<path d="M4.5 32c.8-6.2 5.8-8.6 11.5-8.6s10.700 2.400 11.500 8.600z" fill="#fff"/>'+
+      '<circle cx="16" cy="14" r="6.6" fill="'+a.skin+'"/>'+
+      '<path d="M9.4 12.600c0-4 3-6.800 6.600-6.800s6.600 2.800 6.600 6.800z" fill="'+a.cap+'"/>'+
+      '<circle cx="13.600" cy="15" r=".95" fill="#16262A"/><circle cx="18.400" cy="15" r=".95" fill="#16262A"/>'+
+      '<rect x="11" y="16.800" width="10" height="4.400" rx="2.100" fill="#E4F4EF" stroke="#9BC7BC" stroke-width=".5"/>'+
+      a.extra+'</svg>';
   }
   function slotHTML(owner, color, opts){
     opts=opts||{};
@@ -554,7 +573,7 @@
       var handCount = p.hand ? p.hand.length : ((state.handCounts && state.handCounts[p.id]) || 0);
       var backs = ''; for(var b=0;b<handCount;b++) backs += '<span class="cardback"></span>';
       return '<div class="oppcard'+active+'">'+
-        '<div class="opphead"><div class="oppname">'+escapeHtml(p.name)+'</div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
+        '<div class="opphead"><div class="oppwho">'+avatarHTML(state.players.indexOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
         '<div class="oppslots">'+slots+'</div>'+
       '</div>';
     }).join('');
@@ -584,12 +603,14 @@
   }
   function renderHand(){
     var el = document.getElementById('hand');
-    el.innerHTML = me().hand.map(function(card){
+    var n = me().hand.length, step = n<=3 ? 3 : (n<=5 ? 2.2 : 1.4);   /* la mano se abre en abanico */
+    el.innerHTML = me().hand.map(function(card, i){
       var selected = selection.cardId===card.id;
       var marked = discardMarks.indexOf(card.id)>-1;
       var enter = !seenCardIds[card.id];
       seenCardIds[card.id] = true;
-      return cardHTML(card, {selected:selected, marked:marked, enter:enter});
+      var off = i-(n-1)/2;
+      return cardHTML(card, {selected:selected, marked:marked, enter:enter, rot:(off*step).toFixed(1), dy:(off*off*1.6).toFixed(1)});
     }).join('');
   }
   function renderActionBar(){
