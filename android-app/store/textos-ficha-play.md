@@ -28,22 +28,24 @@ HOW IT WORKS
 PLAY YOUR WAY
 • This device: play against 1 to 4 bots in three difficulty levels (Easy, Normal and Hard), no connection needed to the game itself.
 • Learn in a minute with the interactive tutorial.
-• Online: create a room and invite friends with a link (or the 4-character code). Up to 5 players, with optional CPU players.
+• Online: create a room and invite friends with a link (or the 4-character code). Up to 5 players, with optional CPU players, and a rematch button to keep playing with the same group.
 • Your hand is private: other players only see how many cards you hold.
 
 DESIGNED FOR THE PHONE
-• One-hand play: tap a card, tap where it goes.
+• One-hand play: tap a card, tap where it goes; hold a card to see it large.
+• Stats and achievements saved only on your device.
 • Clear colors and icons, light and dark themes.
 • Available in English and Spanish (it follows your phone’s language, or switch with the EN/ES button).
+• Accessibility options: large text, color-blind help and reduced motion.
 • No ads, no purchases, no account: online play uses an anonymous ID.
 
 Quick to learn, hard to master. Who will complete their body first?
 
 **What’s new** (max 500):
-• New interactive tutorial: learn to play in a minute.
-• Invite friends to your room with a link.
-• Three CPU difficulty levels: Easy, Normal and Hard.
-• New cards (Barrier, Immune Breaker, Regeneration), doctor powers, sounds and vibration, new organs and animations.
+• Redesigned cards, new animations and effects.
+• Rematch with the same players; hold a card to see it large.
+• Stats and achievements, plus accessibility options (large text, color-blind help).
+• Fairer turns: a random player starts, and the doctor powers are rebalanced.
 
 ---
 
@@ -71,22 +73,24 @@ CÓMO SE JUEGA
 JUEGA A TU MANERA
 • En este dispositivo: contra 1 a 4 bots en tres niveles de dificultad (Fácil, Normal y Difícil), sin necesitar conexión para jugar.
 • Aprende en un minuto con el tutorial interactivo.
-• Online: crea una sala e invita a tus amigos con un enlace (o con el código de 4 caracteres). Hasta 5 jugadores, con CPU opcionales.
+• Online: crea una sala e invita a tus amigos con un enlace (o con el código de 4 caracteres). Hasta 5 jugadores, con CPU opcionales y botón de revancha para seguir con el mismo grupo.
 • Tu mano es privada: los demás solo ven cuántas cartas tienes.
 
 PENSADO PARA EL MÓVIL
-• Juego con una mano: toca una carta y toca dónde va.
+• Juego con una mano: toca una carta y toca dónde va; mantén pulsada una carta para verla en grande.
+• Estadísticas y logros guardados solo en tu dispositivo.
 • Colores e iconos claros, tema claro y oscuro.
 • En español e inglés (sigue el idioma de tu móvil, o cámbialo con el botón ES/EN).
+• Opciones de accesibilidad: texto grande, ayuda para daltonismo y reducir movimiento.
 • Sin anuncios, sin compras, sin cuenta: el online usa un identificador anónimo.
 
 Fácil de aprender, difícil de dominar. ¿Quién completará su cuerpo primero?
 
 **Novedades** (máx. 500):
-• Nuevo tutorial interactivo: aprende a jugar en un minuto.
-• Invita a tus amigos a tu sala con un enlace.
-• Tres niveles de dificultad para las CPU: Fácil, Normal y Difícil.
-• Cartas nuevas (Barrera, Inmunosupresor, Regeneración), poderes de los doctores, sonidos y vibración, órganos nuevos y animaciones.
+• Cartas rediseñadas, animaciones y efectos nuevos.
+• Revancha con los mismos jugadores; mantén pulsada una carta para verla en grande.
+• Estadísticas y logros, y opciones de accesibilidad (texto grande, ayuda para daltonismo).
+• Turnos más justos: empieza un jugador al azar y los poderes de los doctores están reequilibrados.
 
 ---
 
