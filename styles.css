@@ -179,7 +179,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .card-head{display:flex;align-items:center;justify-content:space-between;width:100%;gap:4px;}
 .card-top{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--card-color);background:color-mix(in srgb, var(--card-color) 16%, var(--surface));box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--card-color) 30%, transparent);flex:0 0 auto;}
 .card-top svg{width:22px;height:22px;filter:drop-shadow(0 2px 2px color-mix(in srgb, var(--card-color) 35%, transparent));}
-.card-kind{min-width:0;font-size:.46rem;font-weight:700;letter-spacing:0;text-transform:uppercase;color:var(--card-color);text-align:right;line-height:1.1;}
+.card-kind{min-width:0;font-size:.44rem;font-weight:700;letter-spacing:0;text-transform:uppercase;color:var(--card-color);text-align:right;line-height:1.1;}
 .card.wild{--card-color:var(--ink-dim);}
 .card.wild .card-top{color:#fff;background:conic-gradient(from 90deg,var(--c-heart),var(--c-brain),var(--c-lung),var(--c-kidney),var(--c-heart));box-shadow:none;}
 .card.wild .card-kind{background:linear-gradient(90deg,var(--c-heart),var(--c-brain),var(--c-lung));-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -295,7 +295,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 
 /* títulos largos (Inmunosupresor / Immunosuppressant) */
 .card-title{overflow-wrap:anywhere;}
-.card.k-inmuno .card-title{font-size:.64rem;}
+.card.k-inmuno .card-title{font-size:.6rem;}
 .card.k-regen .card-title{font-size:.72rem;}
 /* tutorial: banner de guía y marca de lo que hay que tocar */
 .coach{flex:0 0 auto;margin:8px 10px 0;padding:10px 12px;border-radius:14px;background:color-mix(in srgb, var(--accent) 13%, var(--surface));border:1.5px solid color-mix(in srgb, var(--accent) 45%, var(--line));font-size:.8rem;line-height:1.45;box-shadow:var(--shadow);}
@@ -338,4 +338,53 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
   .slot.anim-place,.slot.anim-infect,.slot.anim-cure,.slot.anim-shield,.slot.anim-destroy,.pile.bump{animation:none;}
   .slot.infected,.slot.targetable,.win-modal .confetti span,.card.enter,.sheet,.fcard,.fvirus svg{animation:none;}
   .card,.oppcard{transition:none;}
+}
+
+/* ---------- Efectos de las jugadas: capa, partículas y cartas voladoras ---------- */
+#fxLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:65;}
+.fly-real{position:fixed;pointer-events:none;will-change:transform,opacity;filter:drop-shadow(0 14px 18px rgba(16,38,34,.35));}
+.fly-real .card{pointer-events:none;box-shadow:none;}
+.fxp{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none;will-change:transform,opacity;}
+.fxp.drop{width:8px;height:8px;border-radius:50% 50% 50% 0;}
+.fxp.shard{width:10px;height:7px;border-radius:1px;clip-path:polygon(0 0,100% 25%,45% 100%);}
+.fxp.spark{width:10px;height:10px;border-radius:0;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);}
+.fxring{position:fixed;width:44px;height:44px;border:3px solid;border-radius:50%;pointer-events:none;will-change:transform,opacity;}
+.fxwave{position:fixed;width:60px;height:60px;border-radius:50%;pointer-events:none;border:5px solid color-mix(in srgb, var(--treatment) 80%, transparent);box-shadow:0 0 24px color-mix(in srgb, var(--treatment) 50%, transparent), inset 0 0 24px color-mix(in srgb, var(--treatment) 35%, transparent);will-change:transform,opacity;}
+
+/* ---------- Cartas con más personalidad ---------- */
+.card{border-width:2px;padding:8px 7px 10px;}
+.card-top{border-radius:50%;width:30px;height:30px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--card-color) 38%, transparent), 0 0 14px -3px color-mix(in srgb, var(--card-color) 60%, transparent);}
+.card-top svg{width:22px;height:22px;}
+/* órgano: tejido con puntitos */
+.card.organ{background:
+  radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--card-color) 20%, transparent) 0 1px, transparent 1.6px) 0 0/8px 8px,
+  linear-gradient(168deg, color-mix(in srgb, var(--card-color) 26%, var(--surface)) 0%, var(--surface) 72%);}
+/* patógeno: rayas de peligro y anillo giratorio */
+.card.virus{border-color:color-mix(in srgb, var(--treatment) 55%, var(--card-color));background:
+  repeating-linear-gradient(135deg, color-mix(in srgb, var(--treatment) 11%, transparent) 0 5px, transparent 5px 10px),
+  linear-gradient(168deg, color-mix(in srgb, var(--card-color) 22%, var(--surface)) 0%, color-mix(in srgb, var(--treatment) 14%, var(--surface)) 100%);}
+.card.virus .card-top{box-shadow:inset 0 0 0 1.5px var(--treatment), 0 0 0 3px color-mix(in srgb, var(--treatment) 22%, transparent), 0 0 14px -2px color-mix(in srgb, var(--treatment) 55%, transparent);}
+.card.virus .card-top svg{animation:spin 16s linear infinite;}
+/* anticuerpo: brillo limpio y cruces */
+.card.medicine{background:
+  radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, #fff 80%, var(--card-color) 6%) 0%, transparent 58%),
+  radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--card-color) 16%, transparent) 0 1px, transparent 1.6px) 0 0/12px 12px,
+  linear-gradient(168deg, color-mix(in srgb, var(--card-color) 15%, var(--surface)), var(--surface) 76%);}
+/* acción: rayos y borde dorado */
+.card.treatment{border-color:color-mix(in srgb, var(--treatment) 58%, #E2B94A);background:
+  repeating-conic-gradient(from 0deg at 50% -8%, color-mix(in srgb, var(--treatment) 10%, transparent) 0 7deg, transparent 7deg 14deg),
+  linear-gradient(168deg, color-mix(in srgb, var(--treatment) 24%, var(--surface)), var(--surface) 72%);}
+.card.treatment .card-top{box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--treatment) 45%, #E2B94A), 0 0 14px -2px color-mix(in srgb, #E2B94A 55%, transparent);}
+/* comodín: borde arcoíris */
+.card.wild{border:2px solid transparent;background:
+  linear-gradient(168deg, color-mix(in srgb, #fff 80%, var(--card-color)) 0%, var(--surface) 72%) padding-box,
+  conic-gradient(from 90deg, var(--c-heart), var(--c-brain), var(--c-lung), var(--c-kidney), var(--c-heart)) border-box;}
+/* destello al elegir una carta */
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
+  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%) 160% 0/260% 100% no-repeat;}
+.card.selected::after{opacity:1;animation:card-sheen 1.7s ease-in-out infinite;}
+@keyframes card-sheen{0%{background-position:160% 0;}60%,100%{background-position:-60% 0;}}
+@media (prefers-reduced-motion: reduce){
+  #fxLayer{display:none;}
+  .card.virus .card-top svg,.card.selected::after{animation:none;}
 }

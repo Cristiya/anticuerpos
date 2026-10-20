@@ -824,6 +824,7 @@
       vaccinate:  function(){ tone(660,.1,'triangle',.24); tone(990,.2,'triangle',.2,.09); vib([15,30,15]); },
       immune:     function(){ notes([523,659,784,1046],.07,'triangle',.2); vib([20,30,20,30,40]); },
       discard:    function(){ tone(420,.13,'sine',.16,0,260); vib(10); },
+      draw:       function(){ tone(780,.05,'triangle',.07); tone(980,.05,'triangle',.06,.07); },
       turn:       function(){ tone(660,.08,'sine',.18); tone(880,.15,'sine',.2,.09); vib(25); },
       win:        function(){ notes([523,659,784,1046],.12,'triangle',.24); vib([60,60,60,60,160]); },
       lose:       function(){ tone(392,.2,'triangle',.2); tone(330,.2,'triangle',.2,.2); tone(262,.5,'triangle',.2,.4,200); vib(200); }
@@ -865,28 +866,97 @@
     var i = key.lastIndexOf(':');
     return document.querySelector('[data-owner="'+key.slice(0,i)+'"][data-slot="'+key.slice(i+1)+'"]');
   }
-  function flyCard(from, toEl, tint){
-    if(!from || !toEl || !toEl.animate) return;
-    var to = toEl.getBoundingClientRect(), g = document.createElement('div');
-    g.className = 'fly-card'; g.style.background = tint;
-    document.body.appendChild(g);
-    var fx = from.left + from.width/2 - 18, fy = from.top + from.height/2 - 24;
-    var tx = to.left + to.width/2 - 18, ty = to.top + to.height/2 - 24;
+  /* ---- Capa de efectos: cartas que vuelan, partículas y ondas (Web Animations; se omite con "reducir movimiento") ---- */
+  var fxLayer = document.createElement('div'); fxLayer.id = 'fxLayer'; document.body.appendChild(fxLayer);
+  var canFx = !!(window.Element && Element.prototype.animate);
+  var prevLogKey = null;
+  function fxDone(el, anim){ anim.onfinish = anim.oncancel = function(){ el.remove(); }; }
+  /* copia flotante de una carta (a partir de su HTML) colocada sobre un rectángulo de la pantalla */
+  function cardGhost(html, rect){
+    var g = document.createElement('div'); g.className = 'fly-real';
+    g.style.cssText = 'left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;height:'+rect.height+'px';
+    g.innerHTML = html;
+    var c = g.firstElementChild;
+    if(c){
+      c.classList.remove('selected','marked','enter','tut-hl');
+      c.removeAttribute('data-card-id');
+      c.style.cssText += ';transform:none;margin:0;width:100%;height:100%;min-height:0;';
+    }
+    fxLayer.appendChild(g);
+    return g;
+  }
+  /* la carta jugada viaja hasta su destino: se agranda un instante y se encoge al llegar */
+  function flyRealCard(html, from, to){
+    if(!canFx || !html || !from) return;
+    var g = cardGhost(html, from);
+    var fx = from.left+from.width/2, fy = from.top+from.height/2;
+    var mx = (to.x-fx)*.28, my = (to.y-fy)*.28 - 26;
     var a = g.animate([
-      {transform:'translate('+fx+'px,'+fy+'px) scale(1) rotate(-6deg)', opacity:.95},
-      {transform:'translate('+tx+'px,'+ty+'px) scale(.55) rotate(8deg)', opacity:.25}
-    ], {duration:480, easing:'cubic-bezier(.2,.7,.2,1)'});
-    a.onfinish = a.oncancel = function(){ g.remove(); };
+      {transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1, offset:0, easing:'cubic-bezier(.3,0,.2,1)'},
+      {transform:'translate('+mx.toFixed(1)+'px,'+my.toFixed(1)+'px) scale(1.16) rotate(-4deg)', opacity:1, offset:.3, easing:'cubic-bezier(.5,0,.2,1)'},
+      {transform:'translate('+(to.x-fx).toFixed(1)+'px,'+(to.y-fy).toFixed(1)+'px) scale(.34) rotate(7deg)', opacity:.2, offset:1}
+    ], {duration:720});
+    fxDone(g, a);
+  }
+  var FXCFG = {
+    place:   {n:7,  shape:'dot',   color:'var(--accent)',    spread:26, dur:540, ring:true},
+    infect:  {n:11, shape:'drop',  color:'var(--treatment)', spread:40, dur:780, ring:true},
+    cure:    {n:10, shape:'spark', color:'var(--ok)',        spread:28, rise:-38, dur:920, ring:true},
+    shield:  {n:9,  shape:'spark', color:'var(--accent)',    spread:34, dur:900, ring:true},
+    destroy: {n:13, shape:'shard', color:'var(--c-heart)',   spread:50, fall:34, dur:840, ring:false}
+  };
+  function burst(rect, kind, tint){
+    var cfg = FXCFG[kind]; if(!cfg || !canFx || reduceMotion) return;
+    var cx = rect.left+rect.width/2, cy = rect.top+rect.height/2, col = tint || cfg.color, i;
+    if(cfg.ring){
+      var r = document.createElement('i'); r.className = 'fxring';
+      r.style.cssText = 'left:'+cx+'px;top:'+cy+'px;border-color:'+col;
+      fxLayer.appendChild(r);
+      fxDone(r, r.animate([{transform:'translate(-50%,-50%) scale(.5)', opacity:.85},{transform:'translate(-50%,-50%) scale(2.1)', opacity:0}], {duration:cfg.dur*.8, easing:'ease-out'}));
+    }
+    for(i=0;i<cfg.n;i++){
+      var p = document.createElement('i'); p.className = 'fxp '+cfg.shape;
+      p.style.cssText = 'left:'+cx+'px;top:'+cy+'px;background:'+col;
+      fxLayer.appendChild(p);
+      var ang = Math.random()*Math.PI*2, dist = cfg.spread*(.55+Math.random()*.7);
+      var dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist + (cfg.rise||0) + (cfg.fall||0)*Math.random();
+      fxDone(p, p.animate([
+        {transform:'translate(-50%,-50%) scale(.3) rotate(0deg)', opacity:1},
+        {transform:'translate(calc(-50% + '+dx.toFixed(1)+'px), calc(-50% + '+dy.toFixed(1)+'px)) scale(1) rotate('+Math.round(Math.random()*540-270)+'deg)', opacity:0}
+      ], {duration:cfg.dur*(.8+Math.random()*.5), delay:Math.round(Math.random()*70), easing:'cubic-bezier(.15,.8,.3,1)', fill:'both'}));
+    }
+  }
+  /* Cuarentena: una onda que recorre la mesa */
+  function quarantineWave(){
+    if(!canFx || reduceMotion) return;
+    var t = document.querySelector('.table'), r = t ? t.getBoundingClientRect() : {left:innerWidth/2, top:innerHeight/2, width:0, height:0};
+    var w = document.createElement('i'); w.className = 'fxwave';
+    w.style.cssText = 'left:'+(r.left+r.width/2)+'px;top:'+(r.top+r.height/2)+'px';
+    fxLayer.appendChild(w);
+    fxDone(w, w.animate([{transform:'translate(-50%,-50%) scale(.2)', opacity:.7},{transform:'translate(-50%,-50%) scale(10)', opacity:0}], {duration:1000, easing:'cubic-bezier(.2,.6,.3,1)'}));
+  }
+  /* qué carta se ha jugado, según el registro (para dibujar la carta del rival, cuya mano es privada) */
+  function cardForLog(entry){
+    if(!entry || typeof entry==='string') return null;
+    var c = entry.p && entry.p.c, k = entry.k;
+    var tr = {barrier:'barrera', weaken:'inmuno', regen:'regen', steal:'ladron', transplant:'transplante', contagion:'contagio', glove:'guante', error:'error'};
+    if(tr[k]) return {id:-1, type:'treatment', kind:tr[k]};
+    if(k==='organ') return {id:-1, type:'organ', color:c};
+    if(k==='infect' || k==='destroy' || k==='unvaccinate') return {id:-1, type:'virus', color:c};
+    if(k==='heal' || k==='vaccinate' || k==='immunize') return {id:-1, type:'medicine', color:c};
+    return null;
   }
   function handRects(){
     var m = {};
-    document.querySelectorAll('#hand .card').forEach(function(c){ m[c.getAttribute('data-card-id')] = c.getBoundingClientRect(); });
+    document.querySelectorAll('#hand .card').forEach(function(c){ m[c.getAttribute('data-card-id')] = {rect:c.getBoundingClientRect(), html:c.outerHTML}; });
     return m;
   }
   function animatePlays(before){
     var cur = slotSnapshot(), counts = {deck:state.deck.length, discard:state.discard.length};
     var prev = prevSlots, pc = prevCounts;
     prevSlots = cur; prevCounts = counts;
+    var latest = state.log[0], logKey = latest ? JSON.stringify(latest) : null, newPlay = logKey!==prevLogKey;
+    prevLogKey = logKey;
     if(!prev || state.log.length<=1) return;   /* partida nueva: nada que animar */
     var changes = [];
     Object.keys(cur).forEach(function(k){
@@ -909,25 +979,37 @@
     } else if(pc && counts.discard>pc.discard){
       Sfx.play('discard');
     }
-    if(reduceMotion) return;
-    if(changes.length && changes.length<=6){
-      /* de dónde sale la carta: de mi mano si la jugué yo, o del rival que actuó */
-      var latest = state.log[0], actor = latest && latest.p && latest.p.ai, from = null;
-      var handIds = me() ? me().hand.map(function(c){ return String(c.id); }) : [];
-      var gone = Object.keys(before||{}).filter(function(id){ return handIds.indexOf(id)<0; });
-      if(actor===MY_ID && gone.length) from = before[gone[0]];
-      else if(actor && actor!==MY_ID){
-        var idx = opponentsOf(me()).map(function(p){ return p.id; }).indexOf(actor);
-        var oc = document.querySelectorAll('.oppcard')[idx];
-        if(oc) from = oc.getBoundingClientRect();
+    if(reduceMotion || !canFx) return;
+    /* de dónde sale la carta: de mi mano si la jugué yo, o del rival que actuó */
+    var actor = latest && latest.p && latest.p.ai, from = null, html = null;
+    var handIds = me() ? me().hand.map(function(c){ return String(c.id); }) : [];
+    var gone = Object.keys(before||{}).filter(function(id){ return handIds.indexOf(id)<0; });
+    if(actor===MY_ID && gone.length){ from = before[gone[0]].rect; html = before[gone[0]].html; }
+    else if(actor && actor!==MY_ID){
+      var idx = opponentsOf(me()).map(function(p){ return p.id; }).indexOf(actor);
+      var oc = document.querySelectorAll('.oppcard')[idx], synth = cardForLog(latest);
+      if(oc && synth){
+        var orc = oc.getBoundingClientRect();
+        from = {left:orc.left+orc.width/2-52, top:orc.top+orc.height/2-70, width:104, height:146};
+        html = cardHTML(synth, {});
       }
-      if(!from){ var dp = document.getElementById('drawPile'); if(dp) from = dp.getBoundingClientRect(); }
-      var tints = {place:'var(--accent)', infect:'var(--treatment)', shield:'var(--accent-strong)', cure:'var(--ok)', destroy:'var(--c-heart)'};
-      changes.forEach(function(ch, n){
-        var el = slotEl(ch.key); if(!el) return;
-        if(ch.type!=='destroy' && n<3) flyCard(from, el, tints[ch.type]);
-        setTimeout(function(){ var e2 = slotEl(ch.key); if(e2){ e2.classList.add('anim-'+ch.type); setTimeout(function(){ e2.classList.remove('anim-'+ch.type); }, 900); } }, ch.type==='destroy' ? 0 : 380);
+    }
+    if(changes.length && changes.length<=6){
+      var first = slotEl(changes[0].key);
+      if(html && first){ var r1 = first.getBoundingClientRect(); flyRealCard(html, from, {x:r1.left+r1.width/2, y:r1.top+r1.height/2}); }
+      changes.forEach(function(ch){
+        setTimeout(function(){
+          var e2 = slotEl(ch.key); if(!e2) return;
+          e2.classList.add('anim-'+ch.type);
+          var tint = (ch.type==='shield' || ch.type==='destroy' || ch.type==='place') ? (e2.style.getPropertyValue('--slot-color').trim() || null) : null;
+          burst(e2.getBoundingClientRect(), ch.type, tint);
+          setTimeout(function(){ e2.classList.remove('anim-'+ch.type); }, 900);
+        }, ch.type==='destroy' ? 160 : (html ? 560 : 220));
       });
+    } else if(!changes.length && newPlay && latest && latest.k==='glove'){
+      var tb = document.querySelector('.table');
+      if(html && tb){ var tr = tb.getBoundingClientRect(); flyRealCard(html, from, {x:tr.left+tr.width/2, y:tr.top+tr.height/2}); }
+      setTimeout(quarantineWave, html ? 420 : 0);
     }
     if(pc){
       if(counts.discard>pc.discard) bump('discardPile');
@@ -1020,6 +1102,30 @@
       var off = i-(n-1)/2;
       return cardHTML(card, {selected:selected, marked:marked, enter:enter, rot:(off*step).toFixed(1), dy:(off*off*1.6).toFixed(1)});
     }).join('');
+    flyInNewCards(el);
+  }
+  /* las cartas recién robadas vuelan desde el mazo hasta la mano (una copia flotante: la mano recorta lo que se sale) */
+  function flyInNewCards(handEl){
+    var enters = handEl.querySelectorAll('.card.enter'), pile = document.getElementById('drawPile');
+    if(!enters.length || !canFx || reduceMotion || !pile) return;
+    var pr = pile.getBoundingClientRect(), k = 0;
+    if(!pr.width) return;
+    Array.prototype.forEach.call(enters, function(c){
+      var r = c.getBoundingClientRect(); if(!r.width) return;
+      var w = c.offsetWidth, h = c.offsetHeight, cx = r.left+r.width/2, cy = r.top+r.height/2;
+      c.style.visibility = 'hidden';
+      var g = cardGhost(c.outerHTML, {left:cx-w/2, top:cy-h/2, width:w, height:h});
+      g.firstElementChild.style.transform = 'rotate('+(c.style.getPropertyValue('--rot') || '0deg')+')';   /* aterriza con la inclinación del abanico */
+      var dx = pr.left+pr.width/2-cx, dy = pr.top+pr.height/2-cy;
+      var a = g.animate([
+        {transform:'translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px) scale(.34) rotate(-14deg)', opacity:0},
+        {opacity:1, offset:.18},
+        {transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1}
+      ], {duration:540, delay:k*120, easing:'cubic-bezier(.2,.85,.3,1.08)', fill:'backwards'});
+      a.onfinish = a.oncancel = function(){ g.remove(); c.style.visibility = ''; };
+      k++;
+    });
+    if(k) Sfx.play('draw');
   }
   function renderActionBar(){
     var canAct = isHumanTurn();
