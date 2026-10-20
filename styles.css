@@ -466,3 +466,16 @@ html[data-rm] #fxLayer,html[data-rm] .confetti-rain,html[data-rm] .ambient{displ
 @media (prefers-reduced-motion: reduce){
   .screen.enter,.fcard,.fvirus,.setup h1,.setup .tag,.setup > .rules-card,.setup > div,.setup > .mini-actions,.ambient i,.avatar.mood-scared,.slot.touched{animation:none;}
 }
+
+/* ---------- Ver una carta en grande ---------- */
+#hand .card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+.zoom-layer{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;background:color-mix(in srgb, var(--bg) 72%, transparent);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);pointer-events:none;animation:zoom-fade .16s ease-out;}
+.zoom-box{position:relative;filter:drop-shadow(0 20px 28px rgba(16,38,34,.4));animation:zoom-pop .22s cubic-bezier(.2,1.2,.4,1);}
+.zoom-box .card{box-shadow:none;}
+.zoom-help{max-width:330px;text-align:center;font-size:.86rem;line-height:1.5;color:var(--ink-dim);}
+.zoom-help b{color:var(--ink);}
+.zoom-hint{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);opacity:.8;}
+@keyframes zoom-fade{from{opacity:0;}to{opacity:1;}}
+@keyframes zoom-pop{from{transform:scale(.86);}to{transform:scale(1);}}
+@media (prefers-reduced-motion: reduce){ .zoom-layer,.zoom-box{animation:none;} }
+html[data-rm] .zoom-layer,html[data-rm] .zoom-box{animation:none!important;}

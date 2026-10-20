@@ -95,6 +95,8 @@
   /* Barrera: el órgano protegido no puede ser infectado, robado ni cambiado hasta el próximo turno de su dueño.
      Se guarda como el turnCount en que caduca (el turnCount sube con cada turno, también online). */
   function barrierActive(s){ return !!(s && s.barrier && s.barrier>state.turnCount); }
+  /* Ronda de preparación: durante la primera ronda de turnos nadie puede atacar (así quien empieza no es el único con cuerpo que atacar). */
+  function graceRound(){ return !TUTORIAL && !!state && (state.turnCount||0) < state.players.length*HARD.grace; }
   function hasBarrier(p){ return COLORS.some(function(c){ return barrierActive(p.board[c]); }); }
   /* Doctores: cada asiento tiene un poder pasivo (el asiento 5 repite el 1.º). Todos roban 1 carta al cumplir su condición. */
   var POWERS = 4;
@@ -102,6 +104,8 @@
   function powerDraw(actor, idx){
     if(TUTORIAL || state.bonus) return;
     if(powerOf(actor)!==idx) return;
+    if((actor.pwReady||0) > (state.turnCount||0)) return;   /* aún se está recargando */
+    actor.pwReady = (state.turnCount||0) + state.players.length*HARD.cds[idx];
     state.bonus = true; addLog('power', {a:actor.name, ai:actor.id, pw:idx});
   }
 
@@ -166,6 +170,7 @@
     }
     if(card.type==='virus'){
       var out=[];
+      if(graceRound()) return out;
       opponentsOf(actor).forEach(function(p){
         COLORS.forEach(function(c){
           var s=p.board[c];
@@ -178,6 +183,7 @@
     return [];
   }
   function contagionHasEffect(player){
+    if(graceRound()) return false;
     return COLORS.some(function(c){
       var s=player.board[c];
       if(!s || s.status!=='infected') return false;
@@ -190,6 +196,7 @@
   }
   function getTreatmentOptions(actor, card){
     var opps = opponentsOf(actor);
+    if(graceRound() && ['guante','error','ladron','transplante','inmuno'].indexOf(card.kind)>-1) return [];
     if(card.kind==='guante') return [{label:T('opt.guante'), choice:{}}];
     if(card.kind==='contagio') return contagionHasEffect(actor) ? [{label:T('opt.contagio'), choice:{}}] : [];
     if(card.kind==='error') return opps.filter(function(o){ return !hasBarrier(o); }).map(function(o){ return {label:T('opt.error',{n:o.name}), choice:{playerId:o.id}}; });
@@ -241,11 +248,11 @@
       /* sano + medicina = vacunado; vacunado + segunda medicina = inmune */
       if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
       else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); statCount('immunes', actor); powerDraw(actor, 1); }
-      else if(s1.status==='infected'){ s1.status = 'healthy'; statCount('heals', actor); addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
+      else if(s1.status==='infected'){ s1.status = 'healthy'; statCount('heals', actor); if(HARD.p1heal) powerDraw(actor, 1); addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
-      if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('infections', actor); if(owner.id===MY_ID) gameFlags.hit = true; }
+      if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('infections', actor); if(owner.id===MY_ID) gameFlags.hit = true; if(HARD.p2infect) powerDraw(actor, 2); }
       else if(s2.status==='vaccinated'){ s2.status='healthy'; addLog('unvaccinate', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); powerDraw(actor, 2); }
       else if(s2.status==='infected'){
         owner.board[target.slot]=null;
@@ -440,7 +447,7 @@
     botTimer = null;
     var players = [newPlayer('human',T('you'),false)];
     for(var i=0;i<numBots;i++) players.push(newPlayer('bot'+i, botNames()[i], true));
-    state = { players: players, deck: buildDeck(), discard: [], turn: 0, turnCount:0, log: [], over: false, winnerId:null, difficulty: difficulty };
+    state = { players: players, deck: buildDeck(), discard: [], turn: Math.floor(Math.random()*players.length), turnCount:0, log: [], over: false, winnerId:null, difficulty: difficulty };
     players.forEach(function(p){ drawToHand(p); });
     addLog('start');
     showScreen('game');
@@ -524,7 +531,7 @@
     return pickRandom(organs.length && Math.random()<.5 ? organs : acts);
   }
   /* pesos de la IA difícil */
-  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.6, discardBase:.3, discardEach:.3, riskH:1, riskV:.8, slip:.2, look:.3};
+  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.6, discardBase:.3, discardEach:.3, riskH:1, riskV:.8, slip:.2, look:.3, grace:0, noise:4, cds:[2,3,2,0], p2infect:1, p1heal:1};
   /* riesgo de cada color: cuántos patógenos de ese color quedan por salir (se cuentan el descarte, la mano del bot y los ya puestos) */
   var riskCtx = null;
   function riskMap(bot){
@@ -622,7 +629,8 @@
         }
       }
     }
-    var ranked = opponentsOf(bot).slice().sort(function(a,b){ return boardStrength(b)-boardStrength(a); });
+    var noise = {}; opponentsOf(bot).forEach(function(o){ noise[o.id] = (Math.random()-.5)*2*HARD.noise; });
+    var ranked = opponentsOf(bot).slice().sort(function(a,b){ return (boardStrength(b)+noise[b.id])-(boardStrength(a)+noise[a.id]); });
     for(i=0;i<bot.hand.length;i++){
       card = bot.hand[i];
       if(card.type==='virus'){
@@ -1455,6 +1463,44 @@
     finishAction();
   }
 
+  /* ---- Ver una carta en grande: se mantiene pulsada y se suelta para cerrar ---- */
+  var zoomTimer = null, zoomShown = false, zoomFrom = null, suppressTap = false;
+  function hideZoom(){
+    clearTimeout(zoomTimer); zoomTimer = null; zoomFrom = null;
+    var z = document.getElementById('zoomLayer'); if(z) z.remove();
+    if(zoomShown){ zoomShown = false; suppressTap = true; setTimeout(function(){ suppressTap = false; }, 350); }
+  }
+  function showZoom(cardEl){
+    if(!state || !me()) return;
+    var card = me().hand.find(function(c){ return c.id===Number(cardEl.getAttribute('data-card-id')); });
+    if(!card) return;
+    var help = card.type==='organ' ? T('help.organ') : card.type==='virus' ? T('help.virus') : card.type==='medicine' ? T('help.medicine') : '';
+    var z = document.createElement('div'); z.id = 'zoomLayer'; z.className = 'zoom-layer';
+    z.innerHTML = '<div class="zoom-box">'+cardHTML(card, {})+'</div>'+(help ? '<div class="zoom-help">'+help+'</div>' : '')+'<div class="zoom-hint">'+T('zoom.hint')+'</div>';
+    document.body.appendChild(z);
+    var box = z.firstChild, c = box.firstElementChild, S = Math.min(2.1, (window.innerWidth-48)/c.offsetWidth);
+    box.style.cssText = 'width:'+Math.round(c.offsetWidth*S)+'px;height:'+Math.round(c.offsetHeight*S)+'px';
+    c.removeAttribute('data-card-id');
+    c.style.cssText += ';position:absolute;left:50%;top:0;margin:0;transition:none;transform-origin:50% 0;transform:translateX(-50%) scale('+S.toFixed(2)+')';
+    zoomShown = true;
+    Sfx.play('tap');
+  }
+  (function(){
+    var hand = document.getElementById('hand');
+    hand.addEventListener('pointerdown', function(e){
+      var c = e.target.closest('.card'); if(!c || discardMode) return;
+      zoomFrom = {x:e.clientX, y:e.clientY};
+      clearTimeout(zoomTimer);
+      zoomTimer = setTimeout(function(){ if(zoomFrom) showZoom(c); }, 430);
+    });
+    hand.addEventListener('pointermove', function(e){
+      if(zoomFrom && !zoomShown && Math.abs(e.clientX-zoomFrom.x)+Math.abs(e.clientY-zoomFrom.y) > 12){ clearTimeout(zoomTimer); zoomFrom = null; }
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(t){ document.addEventListener(t, function(){ if(zoomShown || zoomTimer) hideZoom(); }, true); });
+    /* tras soltar, el clic que sigue no debe elegir la carta */
+    hand.addEventListener('click', function(e){ if(suppressTap){ e.stopPropagation(); e.preventDefault(); suppressTap = false; } }, true);
+    hand.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  })();
   document.getElementById('hand').addEventListener('click', function(e){
     var c = e.target.closest('.card'); if(!c) return;
     handleCardTap(Number(c.dataset.cardId));
@@ -1558,12 +1604,24 @@
       '<div class="win-body" aria-hidden="true">'+body+'</div>'+
       '<h2>'+(iWon ? T('win.me') : escapeHtml(T('win.other',{n:winner.name}))) +'</h2>'+
       '<p>'+msg+'</p>'+achHTML+
-      '<button id="playAgain">'+T('win.again')+'</button>'+
+      (GAME_MODE==='online'
+        ? (isOnlineHost ? '<button id="rematch">'+T('win.rematch')+'</button>' : '<p class="rematch-wait">'+T('win.waitRematch')+'</p>')+
+          '<button id="playAgain" class="modal-sound">'+T('btn.leaveLobby')+'</button>'
+        : '<button id="playAgain">'+T('win.again')+'</button>')+
       '</div></div>';
     document.getElementById('playAgain').addEventListener('click', function(){
       root.innerHTML='';
       leaveOnlineRoomSilently(true);
       goToSetup();
+    });
+    var rb = document.getElementById('rematch');
+    if(rb) rb.addEventListener('click', function(){
+      /* revancha: el anfitrión devuelve la sala al lobby con los mismos jugadores (las CPU se quedan) */
+      rb.disabled = true;
+      if(!onlineRoomRef) return;
+      onlineRoomRef.update({status:'lobby', gameState:firebase.firestore.FieldValue.delete()}).catch(function(err){
+        rb.disabled = false; toast(T('online.syncFail',{m:err.message}));
+      });
     });
   }
 
@@ -1830,6 +1888,13 @@
     });
   }
 
+  /* deja a cero lo de la partida anterior (revancha) */
+  function resetGameUi(){
+    state = null; winShown = false; powerToastShown = false; lastLogShown = null; seenCardIds = {};
+    prevSlots = null; prevCounts = null; prevLogKey = null; touched = {}; gameFlags = {hit:false};
+    hostBotScheduledTurn = -1; drawGuard = -1;
+    clearSelection(); discardMode = false; discardMarks = [];
+  }
   function enterLobby(){
     winShown = false; powerToastShown = false; lastLogShown = null; seenCardIds = {};
     showScreen('lobby');
@@ -1844,6 +1909,12 @@
       var data = snap.data();
       trackHost(data);
       if(data.status==='lobby'){
+        if(document.getElementById('screenLobby').hidden){   /* revancha: vuelven todos a la sala */
+          document.getElementById('overlayRoot').innerHTML = '';
+          resetGameUi();
+          showScreen('lobby');
+          toast(T('online.rematch'), 2600);
+        }
         renderLobby(data);
       } else if(data.status==='playing' || data.status==='over'){
         GAME_MODE = 'online';
@@ -1932,7 +2003,7 @@
         while(hands[p.id].length<HAND_SIZE){ if(deck.length===0) break; hands[p.id].push(deck.pop()); }
         handCounts[p.id] = hands[p.id].length;
       });
-      var gs = { players:players, deck:deck, discard:[], turn:0, turnCount:0, log:[{k:'start', p:{}}], over:false, winnerId:null, handCounts:handCounts, gloveFor:[], difficulty:difficulty };
+      var gs = { players:players, deck:deck, discard:[], turn:Math.floor(Math.random()*players.length), turnCount:0, log:[{k:'start', p:{}}], over:false, winnerId:null, handCounts:handCounts, gloveFor:[], difficulty:difficulty };
       /* las manos van a documentos privados (hands/{uid}); en la sala solo queda cuántas cartas tiene cada uno */
       var batch = fbDb.batch();
       batch.update(onlineRoomRef, {status:'playing', gameState: gs});

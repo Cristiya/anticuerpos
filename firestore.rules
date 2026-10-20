@@ -58,6 +58,14 @@ service cloud.firestore {
           && (after().status == 'lobby' || after().gameState is map);
       }
 
+      // Revancha: terminada la partida, el anfitrion devuelve la sala al lobby con los mismos jugadores.
+      function isRematch() {
+        return isHost() && before().status == 'over' && after().status == 'lobby'
+          && after().seats == before().seats
+          && after().uids == before().uids
+          && !('gameState' in after());
+      }
+
       // Durante la partida solo escribe quien tiene el turno; el anfitrion mueve a las CPUs.
       function isPlayerMove() {
         return before().status == 'playing'
@@ -153,7 +161,7 @@ service cloud.firestore {
         && ((hostSame()
               && (isHeartbeat()
                   || (pingSame() && expireSame()
-                      && (isJoining() || isLeaving() || isHostInLobby() || isPlayerMove()
+                      && (isJoining() || isLeaving() || isHostInLobby() || isRematch() || isPlayerMove()
                           || isGloveResponse() || isHostSkip()))))
             || isHostHandover()
             || isHostTakeover());
