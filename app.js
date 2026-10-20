@@ -452,8 +452,81 @@
       '</button>';
   }
 
+  /* ---- Animaciones de las jugadas ----
+     No dependen de quién juega ni de si es online: se comparan los tableros antes y después de cada render
+     (órgano nuevo, infectado, curado, inmunizado, destruido) y se anima lo que cambió. */
+  var prevSlots = null, prevCounts = null;
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function slotSnapshot(){
+    var m = {};
+    state.players.forEach(function(p){ COLORS.forEach(function(c){ m[p.id+':'+c] = p.board[c] ? p.board[c].status : ''; }); });
+    return m;
+  }
+  function slotEl(key){
+    var i = key.lastIndexOf(':');
+    return document.querySelector('[data-owner="'+key.slice(0,i)+'"][data-slot="'+key.slice(i+1)+'"]');
+  }
+  function flyCard(from, toEl, tint){
+    if(!from || !toEl || !toEl.animate) return;
+    var to = toEl.getBoundingClientRect(), g = document.createElement('div');
+    g.className = 'fly-card'; g.style.background = tint;
+    document.body.appendChild(g);
+    var fx = from.left + from.width/2 - 18, fy = from.top + from.height/2 - 24;
+    var tx = to.left + to.width/2 - 18, ty = to.top + to.height/2 - 24;
+    var a = g.animate([
+      {transform:'translate('+fx+'px,'+fy+'px) scale(1) rotate(-6deg)', opacity:.95},
+      {transform:'translate('+tx+'px,'+ty+'px) scale(.55) rotate(8deg)', opacity:.25}
+    ], {duration:480, easing:'cubic-bezier(.2,.7,.2,1)'});
+    a.onfinish = a.oncancel = function(){ g.remove(); };
+  }
+  function handRects(){
+    var m = {};
+    document.querySelectorAll('#hand .card').forEach(function(c){ m[c.getAttribute('data-card-id')] = c.getBoundingClientRect(); });
+    return m;
+  }
+  function animatePlays(before){
+    var cur = slotSnapshot(), counts = {deck:state.deck.length, discard:state.discard.length};
+    var prev = prevSlots, pc = prevCounts;
+    prevSlots = cur; prevCounts = counts;
+    if(!prev || reduceMotion || state.log.length<=1) return;   /* partida nueva: nada que animar */
+    var changes = [];
+    Object.keys(cur).forEach(function(k){
+      if(prev[k]===undefined || prev[k]===cur[k]) return;
+      var type = !cur[k] ? 'destroy' : !prev[k] ? 'place' : cur[k]==='infected' ? 'infect' : cur[k]==='immune' ? 'shield' : 'cure';
+      changes.push({key:k, type:type});
+    });
+    if(changes.length && changes.length<=6){
+      /* de dónde sale la carta: de mi mano si la jugué yo, o del rival que actuó */
+      var latest = state.log[0], actor = latest && latest.p && latest.p.ai, from = null;
+      var handIds = me() ? me().hand.map(function(c){ return String(c.id); }) : [];
+      var gone = Object.keys(before||{}).filter(function(id){ return handIds.indexOf(id)<0; });
+      if(actor===MY_ID && gone.length) from = before[gone[0]];
+      else if(actor && actor!==MY_ID){
+        var idx = opponentsOf(me()).map(function(p){ return p.id; }).indexOf(actor);
+        var oc = document.querySelectorAll('.oppcard')[idx];
+        if(oc) from = oc.getBoundingClientRect();
+      }
+      if(!from){ var dp = document.getElementById('drawPile'); if(dp) from = dp.getBoundingClientRect(); }
+      var tints = {place:'var(--accent)', infect:'var(--treatment)', shield:'var(--accent-strong)', cure:'var(--c-gut)', destroy:'var(--c-heart)'};
+      changes.forEach(function(ch, n){
+        var el = slotEl(ch.key); if(!el) return;
+        if(ch.type!=='destroy' && n<3) flyCard(from, el, tints[ch.type]);
+        setTimeout(function(){ var e2 = slotEl(ch.key); if(e2){ e2.classList.add('anim-'+ch.type); setTimeout(function(){ e2.classList.remove('anim-'+ch.type); }, 900); } }, ch.type==='destroy' ? 0 : 380);
+      });
+    }
+    if(pc){
+      if(counts.discard>pc.discard) bump('discardPile');
+      if(counts.deck<pc.deck) bump('drawPile');
+    }
+  }
+  function bump(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+
   function render(){
     if(!state) return;
+    var before = handRects();
     renderTopbar();
     renderOpponents();
     renderPiles();
@@ -461,6 +534,7 @@
     renderHand();
     renderActionBar();
     updateStatusLine();
+    animatePlays(before);
   }
   function renderTopbar(){
     var t = document.getElementById('turnIndicator');

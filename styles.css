@@ -220,7 +220,26 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .toast{position:fixed;left:50%;top:31%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:.8rem;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;box-shadow:var(--shadow);width:max-content;max-width:calc(100vw - 32px);text-align:center;line-height:1.35;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(4px);}
 
+/* ---------- Animaciones de las jugadas ---------- */
+.fly-card{position:fixed;left:0;top:0;width:36px;height:48px;border-radius:8px;z-index:70;pointer-events:none;box-shadow:0 8px 16px -6px rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.7);}
+.slot{transition:background-color .25s, border-color .25s;}
+.slot.anim-place{animation:slot-pop .6s cubic-bezier(.2,1.4,.4,1);}
+.slot.anim-infect{animation:slot-infect .8s ease-out;}
+.slot.anim-cure{animation:slot-cure .8s ease-out;}
+.slot.anim-shield{animation:slot-shield .85s ease-out;}
+.slot.anim-destroy{animation:slot-destroy .7s ease-out;}
+@keyframes slot-pop{0%{transform:scale(.55);opacity:.3;}60%{transform:scale(1.14);opacity:1;}100%{transform:scale(1);}}
+@keyframes slot-infect{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--treatment) 75%, transparent);transform:translateX(0);}
+  15%{transform:translateX(-4px);}30%{transform:translateX(4px);}45%{transform:translateX(-3px);}60%{transform:translateX(2px);box-shadow:0 0 0 12px color-mix(in srgb, var(--treatment) 0%, transparent);}100%{transform:translateX(0);box-shadow:0 0 0 0 transparent;}}
+@keyframes slot-cure{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--c-gut) 80%, transparent);transform:scale(1);}35%{transform:scale(1.1);}100%{box-shadow:0 0 0 16px color-mix(in srgb, var(--c-gut) 0%, transparent);transform:scale(1);}}
+@keyframes slot-shield{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--slot-color) 85%, transparent);filter:brightness(1);}40%{filter:brightness(1.35);transform:scale(1.08);}100%{box-shadow:0 0 0 18px color-mix(in srgb, var(--slot-color) 0%, transparent);filter:brightness(1);transform:scale(1);}}
+@keyframes slot-destroy{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--c-heart) 85%, transparent), inset 0 0 0 3px color-mix(in srgb, var(--c-heart) 85%, transparent);transform:scale(1.08);}100%{box-shadow:0 0 0 14px color-mix(in srgb, var(--c-heart) 0%, transparent), inset 0 0 0 3px transparent;transform:scale(1);}}
+.pile.bump{animation:pile-bump .35s ease-out;}
+@keyframes pile-bump{0%{transform:scale(1);}35%{transform:scale(1.14);}100%{transform:scale(1);}}
+
 @media (prefers-reduced-motion: reduce){
+  .fly-card{display:none;}
+  .slot.anim-place,.slot.anim-infect,.slot.anim-cure,.slot.anim-shield,.slot.anim-destroy,.pile.bump{animation:none;}
   .slot.infected,.slot.targetable,.win-modal .confetti span,.card.enter,.sheet,.fcard,.fvirus svg{animation:none;}
   .card,.oppcard{transition:none;}
 }
