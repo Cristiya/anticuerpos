@@ -813,8 +813,20 @@
     var root = document.getElementById('overlayRoot');
     var iWon = winner.id===MY_ID;
     var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
-    root.innerHTML = '<div class="overlay"><div class="modal win-modal">'+
-      '<div class="confetti"><span></span><span></span><span></span><span></span></div>'+
+    /* el cuerpo completo del ganador, órgano a órgano; el escudo marca los inmunes */
+    var body = COLORS.map(function(c, i){
+      var s = winner.board[c];
+      return '<div class="win-organ'+(s && s.status==='immune' ? ' immune' : '')+'" style="--slot-color:var(--c-'+c+');--i:'+i+'">'+organIcon(c)+
+        (s && s.status==='immune' ? '<span class="win-shield">'+SHIELD_ICON+'</span>' : '')+'</div>';
+    }).join('');
+    var rain = '';
+    if(iWon && !reduceMotion){
+      for(var n=0;n<40;n++){
+        rain += '<i class="cf" style="left:'+(Math.random()*100).toFixed(1)+'%;--d:'+(Math.random()*1.6).toFixed(2)+'s;--t:'+(2.6+Math.random()*2).toFixed(2)+'s;--r:'+Math.round(Math.random()*720-360)+'deg;--x:'+Math.round(Math.random()*120-60)+'px;background:var(--c-'+COLORS[n%4]+')"></i>';
+      }
+    }
+    root.innerHTML = '<div class="overlay"><div class="confetti-rain" aria-hidden="true">'+rain+'</div><div class="modal win-modal'+(iWon?' won':'')+'">'+
+      '<div class="win-body" aria-hidden="true">'+body+'</div>'+
       '<h2>'+(iWon ? T('win.me') : escapeHtml(T('win.other',{n:winner.name}))) +'</h2>'+
       '<p>'+msg+'</p>'+
       '<button id="playAgain">'+T('win.again')+'</button>'+
