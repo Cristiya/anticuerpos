@@ -40,14 +40,37 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .setup{position:relative;}
 .lang-toggle{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;min-width:44px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-dim);font-weight:700;font-size:.78rem;letter-spacing:.06em;text-align:center;}
 .lang-toggle:active{transform:scale(.96);}
-.setup .glyphs{display:flex;justify-content:center;gap:10px;margin-bottom:4px;}
-.setup .glyphs .g{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--gc) 16%, transparent);color:var(--gc);}
-.setup .glyphs .g svg{width:24px;height:24px;}
-.setup h1{font-size:2.1rem;letter-spacing:-.01em;}
+/* luces y sombras de las ilustraciones de órganos */
+.hl{fill:#fff;fill-opacity:.5;}
+.sh{fill:#000;fill-opacity:.16;}
+.shl{fill:none;stroke:#000;stroke-opacity:.22;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round;}
+
+.setup{overflow:hidden;}
+.setup::before,.setup::after{content:"";position:absolute;border-radius:50%;filter:blur(46px);opacity:.5;pointer-events:none;z-index:0;}
+.setup::before{width:220px;height:220px;top:-70px;left:-80px;background:color-mix(in srgb, var(--c-brain) 35%, transparent);}
+.setup::after{width:240px;height:240px;bottom:-90px;right:-90px;background:color-mix(in srgb, var(--c-gut) 38%, transparent);}
+.setup > *{position:relative;z-index:1;}
+.setup > .lang-toggle{position:absolute;}
+.setup .glyphs{display:flex;justify-content:center;align-items:flex-start;height:122px;margin:4px 0 2px;position:relative;}
+.fcard{width:66px;height:90px;margin:0 -6px;border-radius:15px;border:1.5px solid color-mix(in srgb, var(--gc) 55%, var(--line));
+  background:linear-gradient(168deg, color-mix(in srgb, var(--gc) 30%, var(--surface)) 0%, var(--surface) 78%);
+  box-shadow:0 12px 20px -10px rgba(16,38,34,.55), inset 0 1px 0 rgba(255,255,255,.5);
+  display:flex;align-items:center;justify-content:center;color:var(--gc);
+  transform:translateY(var(--dy)) rotate(var(--rot));animation:fan-float 4.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.9s);}
+.fcard svg{width:50px;height:50px;filter:drop-shadow(0 3px 3px color-mix(in srgb, var(--gc) 40%, transparent));}
+.fvirus{position:absolute;right:calc(50% - 134px);bottom:-6px;width:50px;height:50px;border-radius:50%;background:var(--treatment);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;border:3px solid var(--bg);box-shadow:0 8px 16px -6px color-mix(in srgb, var(--treatment) 70%, transparent);}
+.fvirus svg{width:30px;height:30px;animation:spin 22s linear infinite;}
+@keyframes fan-float{0%,100%{transform:translateY(var(--dy)) rotate(var(--rot));}50%{transform:translateY(calc(var(--dy) - 7px)) rotate(var(--rot));}}
+@keyframes spin{to{transform:rotate(360deg);}}
+.setup h1{font-size:2.5rem;letter-spacing:-.02em;background:linear-gradient(100deg,var(--accent-strong),var(--c-brain) 85%);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .setup .tag{color:var(--ink-dim);font-size:.95rem;max-width:340px;margin:0 auto;line-height:1.5;}
-.rules-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;text-align:left;box-shadow:var(--shadow);}
-.rules-card h3{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin-bottom:8px;}
-.rules-card ul{margin:0;padding-left:18px;color:var(--ink-dim);font-size:.88rem;line-height:1.6;}
+.rules-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0 18px;text-align:left;box-shadow:var(--shadow);}
+.rules-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:14px 0;font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);}
+.rules-card summary::-webkit-details-marker{display:none;}
+.rules-card summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s;}
+.rules-card[open] summary::after{transform:rotate(-135deg) translateY(-2px);}
+.rules-card ul{margin:0 0 14px;padding-left:18px;color:var(--ink-dim);font-size:.88rem;line-height:1.6;}
 .rules-card li b{color:var(--ink);}
 .field-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-align:left;}
 .segmented{display:flex;gap:6px;}
@@ -104,8 +127,9 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .slot .slot-icon{display:flex;}
 .oppslots .slot-label,.oppslots .slot-state{display:none;}
 .oppslots .slot{aspect-ratio:1/1.1;}
-.oppslots .slot svg{width:20px;height:20px;}
-.slot svg{width:18px;height:18px;}
+.oppslots .slot svg{width:24px;height:24px;}
+.slot svg{width:20px;height:20px;}
+.slot:not(.filled) svg{opacity:.4;}
 .slot-label{font-size:.6rem;font-weight:700;letter-spacing:.02em;line-height:1.1;}
 .slot-state{font-size:.52rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.85;line-height:1;}
 .slot.infected .slot-state{color:var(--treatment);opacity:1;}
@@ -132,7 +156,7 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .myboard .rowlabel{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-dim);margin-bottom:6px;}
 .myslots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .myslots .slot{aspect-ratio:1/1;}
-.myslots .slot svg{width:26px;height:26px;}
+.myslots .slot svg{width:36px;height:36px;}
 .myslots .slot-label{font-size:.68rem;}
 .myslots .slot-state{font-size:.56rem;}
 
@@ -150,11 +174,11 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .card.selected{border-color:var(--card-color);box-shadow:0 0 0 3px color-mix(in srgb, var(--card-color) 50%, transparent), 0 12px 20px -10px rgba(16,38,34,.55);transform:translateY(-8px);}
 .card.marked{outline:3px solid var(--c-heart);outline-offset:1px;opacity:.7;transform:translateY(4px) rotate(-2deg);}
 .card-head{display:flex;align-items:center;justify-content:space-between;width:100%;gap:4px;}
-.card-top{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--bg);background:var(--card-color);flex:0 0 auto;}
-.card-top svg{width:20px;height:20px;}
-.card-kind{font-size:.54rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--card-color);text-align:right;line-height:1.1;}
+.card-top{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--card-color);background:color-mix(in srgb, var(--card-color) 16%, var(--surface));box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--card-color) 30%, transparent);flex:0 0 auto;}
+.card-top svg{width:25px;height:25px;filter:drop-shadow(0 2px 2px color-mix(in srgb, var(--card-color) 35%, transparent));}
+.card-kind{min-width:0;font-size:.5rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--card-color);text-align:right;line-height:1.1;}
 .card.wild{--card-color:var(--ink-dim);}
-.card.wild .card-top{background:conic-gradient(from 90deg,var(--c-heart),var(--c-brain),var(--c-gut),var(--c-bone),var(--c-heart));}
+.card.wild .card-top{color:#fff;background:conic-gradient(from 90deg,var(--c-heart),var(--c-brain),var(--c-gut),var(--c-bone),var(--c-heart));box-shadow:none;}
 .card.wild .card-kind{background:linear-gradient(90deg,var(--c-heart),var(--c-brain),var(--c-gut));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .card-title{font-weight:700;font-size:.82rem;line-height:1.2;}
 .card-sub{font-size:.68rem;color:var(--ink-dim);line-height:1.35;}
@@ -197,6 +221,6 @@ button:focus-visible,.text-input:focus-visible{outline:2.5px solid var(--accent)
 .toast.show{opacity:1;transform:translateX(-50%) translateY(4px);}
 
 @media (prefers-reduced-motion: reduce){
-  .slot.infected,.slot.targetable,.win-modal .confetti span,.card.enter,.sheet{animation:none;}
+  .slot.infected,.slot.targetable,.win-modal .confetti span,.card.enter,.sheet,.fcard,.fvirus svg{animation:none;}
   .card,.oppcard{transition:none;}
 }

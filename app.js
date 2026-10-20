@@ -13,10 +13,23 @@
   /* ================= ICONS ================= */
   function svgWrap(inner){ return '<svg viewBox="0 0 24 24" fill="none">'+inner+'</svg>'; }
   var ORGAN_PATHS = {
-    heart: '<path d="M12 20.2s-7.1-4.4-9.3-8.6C1.2 8.4 2.6 5 5.8 5c1.9 0 3.3 1.1 3.9 2.3.3.6 1.6.6 1.9 0C12.2 6.1 13.6 5 15.5 5c3.2 0 4.6 3.4 3.1 6.6-2.2 4.2-9.3 8.6-9.3 8.6z" fill="currentColor"/>',
-    brain: '<path d="M9 4.3C7.1 4.1 5.4 5.5 5.3 7.3c0 .5.1.9.2 1.3C4.2 9.2 3.3 10.4 3.3 12c0 1.4.7 2.6 1.9 3.3-.1.3-.1.6-.1.9 0 2.1 1.8 3.7 3.9 3.6.6.9 1.6 1.5 2.8 1.5 1.8 0 3.3-1.4 3.3-3.2V7.6c0-1.7-1.4-3-3.1-3-.9 0-1.6.4-2.1.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 6.4v13.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
-    gut: '<path d="M6.2 5.2C4.4 5.2 3 6.6 3 8.4c0 1.2.6 2.2 1.6 2.8-1 .5-1.6 1.5-1.6 2.7 0 1.8 1.4 3.2 3.1 3.2.6 1.8 2.3 3.1 4.3 3.1 3.3 0 5.6-2.7 5.6-6.6 0-4.2-1.7-8.4-5.7-8.4-1.4 0-2.7 0-4.1 0z" fill="currentColor"/>',
-    bone: '<rect x="5" y="10.5" width="14" height="3.2" rx="1.6" fill="currentColor"/><circle cx="6.4" cy="8.6" r="2.3" fill="currentColor"/><circle cx="6.4" cy="15.4" r="2.3" fill="currentColor"/><circle cx="17.6" cy="8.6" r="2.3" fill="currentColor"/><circle cx="17.6" cy="15.4" r="2.3" fill="currentColor"/>'
+    /* cuerpo en currentColor + luces (.hl) y sombras (.sh) definidas en styles.css */
+    heart: '<path d="M9.4 6.2V3.6c0-.9.6-1.5 1.5-1.5M14.4 6V3.4c0-.8.5-1.3 1.3-1.3h1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'+
+      '<path d="M12 21.4s-8.3-5.1-10.3-10C.5 8 2.4 4.6 6.1 4.6c2.2 0 3.8 1.1 4.5 2.5.3.5.8.5 1.1 0 .7-1.4 2.3-2.5 4.5-2.5 3.7 0 5.6 3.4 4.4 6.8-2 4.9-10.6 10-10.6 10z" fill="currentColor"/>'+
+      '<path class="sh" d="M12 21.4s6.2-3.8 9-8.2c-2.2 1.8-5.2 2-6.9 4.2-1 1.3-1.6 2.7-2.1 4z"/>'+
+      '<ellipse class="hl" cx="6.6" cy="9.2" rx="1.6" ry="2.6" transform="rotate(28 6.6 9.2)"/>',
+    brain: '<path d="M8.6 3.6C6.6 3.4 5 4.9 4.9 6.8 3.4 7.5 2.5 9 2.8 10.6 1.8 11.4 1.4 12.8 1.9 14c.4 1 1.2 1.6 2.2 1.8.2 1.8 1.8 3.2 3.6 3.1.5 1.2 1.7 2 3 2h2.6c1.3 0 2.5-.8 3-2 1.8.1 3.4-1.3 3.6-3.1 1-.2 1.8-.8 2.2-1.8.5-1.2.1-2.6-.9-3.4.3-1.6-.6-3.1-2.1-3.8-.1-1.9-1.7-3.4-3.7-3.2C14.9 3.1 13.7 2.5 12.4 2.5c-1.4 0-2.6.5-3.8 1.1z" transform="translate(-.2 .4)" fill="currentColor"/>'+
+      '<path class="shl" d="M12 5.4v14.2M7.2 10c1.5 0 2.5.9 2.6 2.2M16.8 10c-1.5 0-2.5.9-2.6 2.2M6.6 15c1.6 0 2.8-.7 3.3-1.9M17.4 15c-1.6 0-2.8-.7-3.3-1.9M8.4 6.6c.2 1 .9 1.7 1.9 1.9M15.6 6.6c-.2 1-.9 1.7-1.9 1.9"/>'+
+      '<ellipse class="hl" cx="6.4" cy="8.4" rx="1.3" ry="1.9" transform="rotate(20 6.4 8.4)"/>',
+    gut: '<path d="M7.6 2.2c-.8 0-1.4.6-1.4 1.4v3.5C3.9 8.2 2.2 10.4 2.2 13.4c0 4.1 3.4 7.4 8.2 7.4 5.6 0 9.4-3.5 9.4-7.9 0-1.8-1-3.1-2.7-3.1-1.5 0-2.1.9-3.7.9-1.7 0-2.7-1-2.7-2.7V3.6c0-.8-.6-1.4-1.4-1.4z" fill="currentColor"/>'+
+      '<path d="M19.6 9.8c1.2-.3 2-1.1 2-2.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'+
+      '<path class="sh" d="M19.8 12.9c0 4.4-3.8 7.9-9.4 7.9-1.3 0-2.5-.2-3.5-.6 1.2 1.1 2.9 1.8 5 1.8 5.4 0 8.9-3 8.9-7.2 0-.7-.1-1.3-.3-1.9z"/>'+
+      '<path class="shl" d="M7.4 12.2c2.2 1 4.6.9 6.4-.3M6.8 15.6c2.6 1 5.6.6 7.8-1"/>'+
+      '<ellipse class="hl" cx="5.6" cy="12.6" rx="1.1" ry="2.2" transform="rotate(14 5.6 12.6)"/>',
+    bone: '<g transform="rotate(-45 12 12)"><rect x="3.8" y="10.2" width="16.4" height="3.6" rx="1.8" fill="currentColor"/>'+
+      '<circle cx="4.8" cy="8.7" r="2.6" fill="currentColor"/><circle cx="4.8" cy="15.3" r="2.6" fill="currentColor"/><circle cx="19.2" cy="8.7" r="2.6" fill="currentColor"/><circle cx="19.2" cy="15.3" r="2.6" fill="currentColor"/>'+
+      '<rect class="sh" x="3.8" y="12.6" width="16.4" height="1.2" rx=".6"/><rect class="hl" x="7.2" y="10.7" width="9.6" height="1" rx=".5"/>'+
+      '<circle class="hl" cx="4.2" cy="7.9" r="1"/><circle class="hl" cx="18.6" cy="7.9" r="1"/></g>'
   };
   function organIcon(color){ return svgWrap(ORGAN_PATHS[color]); }
   var VIRUS_INNER = '<circle cx="12" cy="12" r="5.6" fill="currentColor"/>' +
@@ -748,9 +761,10 @@
   function goToSetup(){ showScreen('setup'); }
 
   /* ================= SETUP SCREEN WIRING ================= */
-  document.getElementById('setupGlyphs').innerHTML = COLORS.map(function(c){
-    return '<div class="g" style="--gc:var(--c-'+c+')">'+organIcon(c)+'</div>';
-  }).join('');
+  var FAN_ROT = [-13,-4.5,4.5,13], FAN_DY = [9,0,0,9];
+  document.getElementById('setupGlyphs').innerHTML = COLORS.map(function(c,i){
+    return '<div class="fcard" style="--gc:var(--c-'+c+');--rot:'+FAN_ROT[i]+'deg;--dy:'+FAN_DY[i]+'px;--i:'+i+'">'+organIcon(c)+'</div>';
+  }).join('') + '<div class="fvirus">'+virusIcon()+'</div>';
   document.getElementById('brandIcon').innerHTML = virusIcon();
 
   /* idioma: textos estáticos del HTML y botón ES/EN */

@@ -11,7 +11,7 @@
 
       /* pantalla de inicio */
       'setup.tag': 'Construye un cuerpo sano con 4 órganos de colores distintos antes que tus rivales. Infecta con virus, cúrate con medicina.',
-      'rules.title': 'Cómo se gana',
+      'rules.title': 'Cómo se juega',
       'rules.1': 'Coloca <b>órganos</b> de 4 colores distintos frente a ti.',
       'rules.2': 'Lanza <b>virus</b> a un órgano rival del mismo color para infectarlo; un segundo virus lo destruye.',
       'rules.3': 'Usa <b>medicina</b> en tu propio órgano para curarlo o inmunizarlo.',
@@ -140,7 +140,7 @@
       'meta.desc': 'Build a healthy body with 4 organs before your rivals. Play on your phone, against bots or online with friends.',
 
       'setup.tag': 'Build a healthy body with 4 organs of different colors before your rivals. Infect them with viruses, heal yourself with medicine.',
-      'rules.title': 'How to win',
+      'rules.title': 'How to play',
       'rules.1': 'Place <b>organs</b> of 4 different colors in front of you.',
       'rules.2': 'Throw a <b>virus</b> at a rival organ of the same color to infect it; a second virus destroys it.',
       'rules.3': 'Use <b>medicine</b> on your own organ to heal or immunize it.',
