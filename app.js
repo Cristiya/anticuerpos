@@ -369,7 +369,7 @@
     if(!TUT.started) return 'intro';
     if(TUT.finished || (b.board.brain && b.board.brain.status==='infected')) return 'done';
     if(!isHumanTurn()) return 'wait';
-    var sel = !!selection.cardId;
+    var sel = selection.cardId!==null;
     if(!h.board.heart) return sel ? 'place2' : 'place1';
     if(h.board.heart.status==='infected') return sel ? 'heal2' : 'heal1';
     return sel ? 'attack2' : 'attack1';
@@ -1631,7 +1631,7 @@
   function renderOpponents(){
     var el = document.getElementById('opponents');
     var scrollLeft = el.scrollLeft;   /* evita que la lista salte al inicio al re-renderizar */
-    var targets = (selection.cardId && isHumanTurn()) ? selection.targets||[] : [];
+    var targets = (selection.cardId!==null && isHumanTurn()) ? selection.targets||[] : [];
     el.innerHTML = opponentsOf(me()).map(function(p){
       var active = state.turn === state.players.indexOf(p) ? ' active' : '';
       var slots = COLORS.map(function(c){
@@ -1662,7 +1662,7 @@
     }
   }
   function renderMyBoard(){
-    var targets = (selection.cardId && isHumanTurn()) ? selection.targets||[] : [];
+    var targets = (selection.cardId!==null && isHumanTurn()) ? selection.targets||[] : [];
     var el = document.getElementById('myBoard');
     el.innerHTML = COLORS.map(function(c){
       var targetable = targets.some(function(t){ return t.playerId===me().id && t.slot===c; });
@@ -1709,7 +1709,7 @@
     var canAct = isHumanTurn();
     document.getElementById('btnDiscard').hidden = !canAct;
     document.getElementById('btnDiscard').textContent = discardMode ? T('btn.discardConfirm',{n:discardMarks.length}) : T('btn.discard');
-    document.getElementById('btnCancel').hidden = !(canAct && (discardMode || selection.cardId));
+    document.getElementById('btnCancel').hidden = !(canAct && (discardMode || selection.cardId!==null));
     document.getElementById('btnPass').hidden = !(canAct && me().hand.length===0);
     var skip = skipTarget();
     var btnSkip = document.getElementById('btnSkip');
@@ -1844,7 +1844,7 @@
     }
   }
   function handleSlotTap(ownerId, slotColor){
-    if(!isHumanTurn() || !selection.cardId) return;
+    if(!isHumanTurn() || selection.cardId===null) return;
     var card = me().hand.find(function(c){ return c.id===selection.cardId; });
     if(!card) return;
     var valid = (selection.targets||[]).some(function(t){ return t.playerId===ownerId && t.slot===slotColor; });
