@@ -22,8 +22,8 @@ HOW IT WORKS
 • Place organs of 4 different colors: heart, brain, lungs and kidney.
 • Infect a rival organ with a pathogen of the same color — a second pathogen destroys it.
 • Heal your infected organs with antibodies; a second antibody makes them immune.
-• Play action cards: Outbreak, Barter, Raid, Quarantine, Mutation, Barrier, Immune Breaker and Regeneration change the whole board.
-• Each doctor at the table has a power of their own: play again when you heal, protect, destroy or trade.
+• Play action cards: Epidemic, Amputation, Adrenaline, Anesthesia, Vaccine drive, Barrier, Immune Breaker and Regeneration change the whole board.
+• Each doctor at the table has a power of their own: play again when you heal, protect, destroy or use special actions.
 
 PLAY YOUR WAY
 • This device: play against 1 to 4 bots in three difficulty levels (Easy, Normal and Hard), no connection needed to the game itself.
@@ -70,8 +70,8 @@ CÓMO SE JUEGA
 • Coloca órganos de 4 colores distintos: corazón, cerebro, pulmón y riñón.
 • Infecta un órgano rival con un patógeno del mismo color: un segundo patógeno lo destruye.
 • Cura tus órganos infectados con anticuerpos; un segundo anticuerpo los deja inmunes.
-• Juega cartas de acción: Brote, Trueque, Saqueo, Cuarentena, Mutación, Barrera, Inmunosupresor y Regeneración cambian todo el tablero.
-• Cada doctor de la mesa tiene un poder propio: vuelve a jugar al curar, proteger, destruir o intercambiar.
+• Juega cartas de acción: Epidemia, Amputación, Adrenalina, Anestesia, Campaña, Barrera, Inmunosupresor y Regeneración cambian todo el tablero.
+• Cada doctor de la mesa tiene un poder propio: vuelve a jugar al curar, proteger, destruir o usar acciones especiales.
 
 JUEGA A TU MANERA
 • En este dispositivo: contra 1 a 4 bots en tres niveles de dificultad (Fácil, Normal y Difícil), sin necesitar conexión para jugar.

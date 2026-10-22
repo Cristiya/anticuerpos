@@ -42,11 +42,11 @@
     return svgWrap('<circle cx="12" cy="12" r="8.6" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="7.2" x2="12" y2="16.8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><line x1="7.2" y1="12" x2="16.8" y2="12" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>');
   }
   var TREATMENT_ICONS = {
-    contagio: svgWrap('<path d="M12 12L5.6 6.2M12 12l6.6-5.8M12 12v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/><circle cx="5" cy="5.6" r="2.2" fill="currentColor"/><circle cx="19" cy="5.6" r="2.2" fill="currentColor"/><circle cx="12" cy="20.4" r="2.2" fill="currentColor"/>'),
-    transplante: svgWrap('<path d="M4 8h13" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M13.2 4.4l4 3.6-4 3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 16H7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M10.8 19.6l-4-3.6 4-3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
-    ladron: svgWrap('<rect x="4" y="13.2" width="7" height="6.8" rx="1.4" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M14.2 4v9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M11 10l3.2 3 3.2-3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
-    guante: svgWrap('<circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6.2 17.8L17.8 6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/>'),
-    error: svgWrap('<path d="M8 3c0 4.4 8 5.6 8 9s-8 4.6-8 9M16 3c0 4.4-8 5.6-8 9s8 4.6 8 9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/><path d="M9.2 6.4h5.6M9.2 17.6h5.6M8.6 12h6.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
+    epidemia: svgWrap('<circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2.6 2.4" fill="none"/><circle cx="12" cy="12" r="10.2" stroke="currentColor" stroke-width="1.4" stroke-dasharray="1.6 3" fill="none"/>'),
+    amputacion: svgWrap('<circle cx="6.4" cy="17.6" r="2.7" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="17.6" cy="17.6" r="2.7" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8.2 15.6L17.4 3.6M15.8 15.6L6.6 3.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'),
+    adrenalina: svgWrap('<path d="M13.4 2.8L5.6 13.2h5.2l-1.2 8 8-10.8h-5.4z" fill="currentColor"/>'),
+    anestesia: svgWrap('<path d="M15.6 3.6a8.6 8.6 0 1 0 4.8 13.6A7.4 7.4 0 0 1 15.6 3.6z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><path d="M13.6 8.4h3.4l-3.4 3.8h3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
+    campana: svgWrap('<path d="M12 3.4l7 2.6v5c0 4.4-2.9 7.9-7 9.2-4.1-1.3-7-4.800-7-9.200V6z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><path d="M12 8.4v6.2M8.900 11.500h6.200" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
     barrera: svgWrap('<path d="M12 3.2l7.2 2.7v5.3c0 4.5-3 8.1-7.2 9.4-4.2-1.3-7.2-4.9-7.2-9.4V5.9z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-dasharray="3 2.2" fill="none"/><circle cx="12" cy="11.6" r="2.8" fill="currentColor"/>'),
     inmuno: svgWrap('<g transform="rotate(-45 12 12)"><rect x="7.2" y="9.4" width="9" height="5.2" rx="1.3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M16.2 12h5M7.2 12H3.6M3.6 9.6v4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 12h3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>'),
     regen: svgWrap('<path d="M12 21v-9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M12 12.2c0-4.4 3-7 7.4-7 0 4.4-3 7-7.4 7z" fill="currentColor"/><path d="M12 15c0-3.2-2.2-5-5.8-5 0 3.4 2.2 5 5.8 5z" fill="currentColor"/>')
@@ -62,14 +62,12 @@
   function buildDeck(rng){
     var deck=[]; var id=0;
     COLORS.forEach(function(c){
-      for(var i=0;i<5;i++) deck.push({id:id++, type:'organ', color:c});
-      for(var i=0;i<4;i++) deck.push({id:id++, type:'virus', color:c});
+      for(var i=0;i<6;i++) deck.push({id:id++, type:'organ', color:c});
+      for(var i=0;i<3;i++) deck.push({id:id++, type:'virus', color:c});
       for(var i=0;i<4;i++) deck.push({id:id++, type:'medicine', color:c});
     });
-    deck.push({id:id++, type:'organ', color:'wild'});
-    deck.push({id:id++, type:'virus', color:'wild'});
-    deck.push({id:id++, type:'medicine', color:'wild'});
-    [['contagio',2],['transplante',3],['ladron',3],['guante',2],['error',3],['barrera',2],['inmuno',2],['regen',2]].forEach(function(pair){
+    for(var w=0;w<2;w++){ deck.push({id:id++, type:'organ', color:'wild'}); deck.push({id:id++, type:'virus', color:'wild'}); }
+    [['epidemia',2],['amputacion',2],['adrenalina',3],['anestesia',2],['campana',2],['barrera',2],['inmuno',2],['regen',2]].forEach(function(pair){
       for(var i=0;i<pair[1];i++) deck.push({id:id++, type:'treatment', kind:pair[0]});
     });
     return shuffle(deck, rng);
@@ -185,12 +183,10 @@
     }
     return [];
   }
-  function contagionHasEffect(player){
-    if(graceRound()) return false;
-    return COLORS.some(function(c){
-      var s=player.board[c];
-      if(!s || s.status!=='infected') return false;
-      return opponentsOf(player).some(function(p){ var t=p.board[c]; return t && t.status==='healthy' && !barrierActive(t); });
+  /* Epidemia: en el color elegido, todos los órganos sanos de la mesa se infectan y los protegidos pierden la protección (inmunes y con barrera, no) */
+  function epidemiaHits(color){
+    return state.players.map(function(p){ return {p:p, s:p.board[color]}; }).filter(function(x){
+      return x.s && x.s.status!=='immune' && x.s.status!=='infected' && !barrierActive(x.s);
     });
   }
   function boardStrength(p){
@@ -199,10 +195,20 @@
   }
   function getTreatmentOptions(actor, card){
     var opps = opponentsOf(actor);
-    if(graceRound() && ['guante','error','ladron','transplante','inmuno'].indexOf(card.kind)>-1) return [];
-    if(card.kind==='guante') return [{label:T('opt.guante'), choice:{}}];
-    if(card.kind==='contagio') return contagionHasEffect(actor) ? [{label:T('opt.contagio'), choice:{}}] : [];
-    if(card.kind==='error') return opps.filter(function(o){ return !hasBarrier(o); }).map(function(o){ return {label:T('opt.error',{n:o.name}), choice:{playerId:o.id}}; });
+    if(graceRound() && ['epidemia','anestesia','inmuno'].indexOf(card.kind)>-1) return [];
+    if(card.kind==='adrenalina') return state.bonus ? [] : [{label:T('opt.adrenalina'), choice:{}}];
+    if(card.kind==='anestesia') return opps.filter(function(o){ return !o.skip; }).map(function(o){ return {label:T('opt.anestesia',{n:o.name}), choice:{playerId:o.id}}; });
+    if(card.kind==='campana'){
+      return COLORS.some(function(c){ var s=actor.board[c]; return s && s.status==='healthy'; }) ? [{label:T('opt.campana'), choice:{}}] : [];
+    }
+    if(card.kind==='epidemia'){
+      return COLORS.filter(function(c){ return epidemiaHits(c).some(function(x){ return x.p.id!==actor.id; }); })
+        .map(function(c){ return {label:T('opt.epidemia',{c:colorLabel(c), n:epidemiaHits(c).length}), choice:{color:c}}; });
+    }
+    if(card.kind==='amputacion'){
+      return COLORS.filter(function(c){ var s=actor.board[c]; return s && s.status==='infected'; })
+        .map(function(c){ return {label:T('opt.amputacion',{c:colorLabel(c)}), choice:{color:c}}; });
+    }
     if(card.kind==='barrera'){
       return COLORS.filter(function(c){ var s=actor.board[c]; return s && s.status!=='immune' && !barrierActive(s); })
         .map(function(c){ return {label:T('opt.barrera',{c:colorLabel(c), s:statusLabel(actor.board[c].status)}), choice:{color:c}}; });
@@ -220,20 +226,6 @@
       return COLORS.filter(function(c){
         return !actor.board[c] && inDiscard.some(function(d){ return d.color===c || d.color==='wild'; });
       }).map(function(c){ return {label:T('opt.regen',{c:colorLabel(c)}), choice:{color:c}}; });
-    }
-    if(card.kind==='ladron'){
-      var out=[];
-      opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && o.board[c].status!=='infected' && o.board[c].status!=='immune' && !barrierActive(o.board[c]) && !actor.board[c]) out.push({label:T('opt.ladron',{c:colorLabel(c), s:statusLabel(o.board[c].status), n:o.name}), choice:{playerId:o.id, color:c}});
-      }); });
-      return out;
-    }
-    if(card.kind==='transplante'){
-      var out2=[];
-      opps.forEach(function(o){ COLORS.forEach(function(c){
-        if(o.board[c] && actor.board[c] && o.board[c].status!=='immune' && actor.board[c].status!=='immune' && !barrierActive(o.board[c])) out2.push({label:T('opt.transplante',{c:colorLabel(c), n:o.name}), choice:{playerId:o.id, color:c}});
-      }); });
-      return out2;
     }
     return [];
   }
@@ -276,38 +268,32 @@
     statCount('cards', actor);
     removeFromHand(actor, card);
     state.discard.push(card);
-    if(card.kind==='guante'){
-      if(GAME_MODE==='online'){
-        /* las manos ajenas son privadas: cada víctima (o el anfitrión, si es una CPU) descarta la suya al ver la marca */
-        state.gloveFor = (state.gloveFor||[]).concat(opponentsOf(actor).map(function(p){ return p.id; }).filter(function(id){ return (state.gloveFor||[]).indexOf(id)<0; }));
-      } else {
-        opponentsOf(actor).forEach(function(p){ state.discard.push.apply(state.discard, p.hand); p.hand=[]; });
-      }
-      addLog('glove', {a:actor.name, ai:actor.id});
-    } else if(card.kind==='contagio'){
-      COLORS.forEach(function(c){
-        var mine = actor.board[c];
-        if(mine && mine.status==='infected'){
-          var target = opponentsOf(actor).find(function(p){ var t=p.board[c]; return t && t.status==='healthy' && !barrierActive(t); });
-          if(target){ target.board[c].status='infected'; mine.status='healthy'; addLog('contagion', {a:actor.name, ai:actor.id, c:c, o:target.name, oi:target.id}); }
-        }
-      });
-    } else if(card.kind==='error'){
-      var opp = state.players.find(function(p){ return p.id===choice.playerId; });
-      var tmp = actor.board; actor.board = opp.board; opp.board = tmp;
-      addLog('error', {a:actor.name, ai:actor.id, o:opp.name, oi:opp.id});
-    } else if(card.kind==='ladron'){
-      var opp2 = state.players.find(function(p){ return p.id===choice.playerId; });
-      actor.board[choice.color] = opp2.board[choice.color];
-      opp2.board[choice.color] = null;
-      addLog('steal', {a:actor.name, ai:actor.id, c:choice.color, o:opp2.name, oi:opp2.id});
+    if(card.kind==='epidemia'){
+      /* en el color elegido, los órganos sanos de toda la mesa se infectan y los protegidos pierden la protección */
+      epidemiaHits(choice.color).forEach(function(x){ x.s.status = x.s.status==='vaccinated' ? 'healthy' : 'infected'; });
+      addLog('epidemic', {a:actor.name, ai:actor.id, c:choice.color});
       powerDraw(actor, 3);
-    } else if(card.kind==='transplante'){
-      var opp3 = state.players.find(function(p){ return p.id===choice.playerId; });
-      var t = actor.board[choice.color]; actor.board[choice.color]=opp3.board[choice.color]; opp3.board[choice.color]=t;
-      addLog('transplant', {a:actor.name, ai:actor.id, c:choice.color, o:opp3.name, oi:opp3.id});
+    } else if(card.kind==='amputacion'){
+      /* sacrificas un órgano infectado (va al descarte) y vuelves a jugar */
+      var lost = actor.board[choice.color];
+      actor.board[choice.color] = null;
+      if(lost && lost.id!=null) state.discard.push({id:lost.id, type:'organ', color:lost.wild ? 'wild' : lost.color});
+      addLog('amputate', {a:actor.name, ai:actor.id, c:choice.color});
+      if(!state.bonus) state.bonus = true;
       powerDraw(actor, 3);
-    } else if(card.kind==='barrera'){
+    } else if(card.kind==='adrenalina'){
+      if(!state.bonus) state.bonus = true;
+      addLog('adrenaline', {a:actor.name, ai:actor.id});
+    } else if(card.kind==='anestesia'){
+      var sleeper = state.players.find(function(p){ return p.id===choice.playerId; });
+      sleeper.skip = true;
+      addLog('anesthesia', {a:actor.name, ai:actor.id, o:sleeper.name, oi:sleeper.id});
+      powerDraw(actor, 3);
+    } else if(card.kind==='campana'){
+      var vaccinated = 0;
+      COLORS.forEach(function(c){ var s = actor.board[c]; if(s && s.status==='healthy'){ s.status = 'vaccinated'; vaccinated++; } });
+      addLog('campaign', {a:actor.name, ai:actor.id, n:vaccinated});
+      powerDraw(actor, 3);    } else if(card.kind==='barrera'){
       actor.board[choice.color].barrier = state.turnCount + state.players.length;
       addLog('barrier', {a:actor.name, ai:actor.id, c:choice.color}); statCount('barriers', actor);
     } else if(card.kind==='inmuno'){
@@ -461,6 +447,16 @@
     showScreen('game');
     beginTurn();
   }
+  /* siguiente jugador; quien está anestesiado pierde su turno (una sola vez) */
+  function nextTurnIndex(){
+    var n = state.players.length, i = (state.turn+1)%n, guard = 0;
+    while(state.players[i].skip && guard++<n){
+      state.players[i].skip = false;
+      addLog('asleep', {a:state.players[i].name, ai:state.players[i].id});
+      i = (i+1)%n;
+    }
+    return i;
+  }
   function beginTurn(){
     var p = currentPlayer();
     if(!(TUTORIAL && p.isBot)) drawToHand(p);   /* en el tutorial el rival no roba: el guion es fijo */
@@ -477,7 +473,7 @@
     if(state.adv) advTurnHooks();
     /* poder de doctor: el mismo jugador vuelve a jugar (turnCount sube para que robe y se reprogramen las CPU) */
     if(state.bonus){ state.bonus = false; }
-    else state.turn = (state.turn+1) % state.players.length;
+    else state.turn = nextTurnIndex();
     state.turnCount = (state.turnCount||0)+1;
     beginTurn();
   }
@@ -541,7 +537,7 @@
     return pickRandom(organs.length && Math.random()<.5 ? organs : acts);
   }
   /* pesos de la IA difícil */
-  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.6, discardBase:.3, discardEach:.3, riskH:1, riskV:.8, slip:.2, look:.3, grace:0, noise:4, cds:[2,3,2,0], p2infect:1, p1heal:1};
+  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.1, discardBase:.05, discardEach:.1, riskH:1, riskV:.8, slip:.2, look:.3, grace:0, noise:4, cds:[2,3,2,0], p2infect:1, p1heal:1, bonusCard:{adrenalina:2.2, amputacion:1.6, anestesia:2.2}};
   /* riesgo de cada color: cuántos patógenos de ese color quedan por salir (se cuentan el descarte, la mano del bot y los ya puestos) */
   var riskCtx = null;
   function riskMap(bot){
@@ -549,8 +545,8 @@
     var count = function(c){ if(c.type==='virus') seen[c.color] = (seen[c.color]||0)+1; };
     state.discard.forEach(count); bot.hand.forEach(count);
     state.players.forEach(function(p){ COLORS.forEach(function(col){ var o = p.board[col]; if(o && o.status==='infected') seen[o.wild ? 'wild' : o.color]++; }); });
-    var wildLeft = Math.max(0, 1-seen.wild), r = {};
-    COLORS.forEach(function(col){ r[col] = Math.min(1, (Math.max(0, 4-seen[col]) + wildLeft)/5); });
+    var wildLeft = Math.max(0, 2-seen.wild), r = {};
+    COLORS.forEach(function(col){ r[col] = Math.min(1, (Math.max(0, 3-seen[col]) + wildLeft)/5); });
     return r;
   }
   /* puntuación de un cuerpo: órganos según su estado, protección, y empuje hacia ganar */
@@ -580,7 +576,7 @@
       b2.hand = JSON.parse(JSON.stringify(bot.hand));
       var card = b2.hand.find(function(c){ return c.id===act.card.id; });
       if(card.type==='treatment') playTreatment(b2, card, act.target||{}); else playCard(b2, card, act.target);
-      value = evalFor(b2);
+      value = evalFor(b2) + (card.type==='treatment' && HARD.bonusCard[card.kind] ? HARD.bonusCard[card.kind] : 0);
     }catch(e){ value = -1e9; }
     finally{ state = saved; }
     return value;
@@ -654,13 +650,29 @@
     for(i=0;i<bot.hand.length;i++){
       card = bot.hand[i];
       if(card.type==='treatment'){
-        if(card.kind==='guante') return {type:'play', card:card, target:{}};
-        if(card.kind==='contagio' && contagionHasEffect(bot)) return {type:'play', card:card, target:{}};
-        if(card.kind==='error'){
-          var worse = ranked.find(function(o){ return boardStrength(o) > boardStrength(bot); });
-          if(worse) return {type:'play', card:card, target:{playerId:worse.id}};
+        if(card.kind==='epidemia'){
+          var epi = getTreatmentOptions(bot, card).map(function(o){
+            var hits = epidemiaHits(o.choice.color), mine = hits.filter(function(x){ return x.p.id===bot.id; }).length;
+            return {o:o, net:hits.length-mine*2};
+          }).filter(function(x){ return x.net>0; }).sort(function(a,b){ return b.net-a.net; });
+          if(epi.length) return {type:'play', card:card, target:epi[0].o.choice};
         }
-        if(card.kind==='inmuno'){
+        if(card.kind==='anestesia'){
+          var an = getTreatmentOptions(bot, card);
+          if(an.length){
+            an.sort(function(a,b){ var pa = state.players.find(function(p){ return p.id===a.choice.playerId; }), pb = state.players.find(function(p){ return p.id===b.choice.playerId; }); return boardStrength(pb)-boardStrength(pa); });
+            return {type:'play', card:card, target:an[0].choice};
+          }
+        }
+        if(card.kind==='campana'){
+          var healthyN = COLORS.filter(function(c){ return bot.board[c] && bot.board[c].status==='healthy'; }).length;
+          if(healthyN>=2) return {type:'play', card:card, target:{}};
+        }
+        if(card.kind==='amputacion'){
+          var am = getTreatmentOptions(bot, card);
+          if(am.length) return {type:'play', card:card, target:am[0].choice};
+        }
+        if(card.kind==='adrenalina' && !state.bonus) return {type:'play', card:card, target:{}};        if(card.kind==='inmuno'){
           var io = getTreatmentOptions(bot, card);
           if(io.length){
             var strength = function(opt){ var o = state.players.find(function(p){ return p.id===opt.choice.playerId; }); return boardStrength(o); };
@@ -671,19 +683,6 @@
         if(card.kind==='barrera'){
           var bo = getTreatmentOptions(bot, card).filter(function(o){ var st=bot.board[o.choice.color].status; return st==='infected' || st==='vaccinated'; });
           if(bo.length) return {type:'play', card:card, target:bo[0].choice};
-        }
-        if(card.kind==='ladron'){
-          var opts = getTreatmentOptions(bot, card);
-          if(opts.length) return {type:'play', card:card, target:opts[0].choice};
-        }
-        if(card.kind==='transplante'){
-          var opts2 = getTreatmentOptions(bot, card).filter(function(o){
-            var opp = state.players.find(function(p){ return p.id===o.choice.playerId; });
-            var mine = bot.board[o.choice.color].status, theirs = opp.board[o.choice.color].status;
-            var rank = {infected:0, healthy:1, vaccinated:1.5, immune:2};
-            return rank[theirs] > rank[mine];
-          });
-          if(opts2.length) return {type:'play', card:card, target:opts2[0].choice};
         }
       }
     }
@@ -1224,7 +1223,7 @@
 
   /* ================= Reto diario y ranking opcional ================= */
   var DAILY_KEY = 'anticuerpos_daily', RANK_KEY = 'anticuerpos_rank';
-  var DAILY_RULES = [['headStart'], ['purge'], ['armored'], ['doubleTurn'], ['hydra'], ['colossus','noProtect'], ['headStart','purge'], ['hydra','purge']];
+  var DAILY_RULES = [['headStart'], ['purge'], ['armored'], ['doubleTurn'], ['hydra'], ['colossus','noProtect'], ['armored','purge'], ['hydra','purge']];
   function advRulesOf(prof){ return prof.rules ? prof.rules.slice() : (prof.boss ? BOSSES[prof.boss].rules.slice() : []); }
   function dayKey(d){ d = d || new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
   function yesterdayKey(){ var d = new Date(); d.setDate(d.getDate()-1); return dayKey(d); }
@@ -1234,8 +1233,9 @@
   function dailyDef(){
     var key = dayKey(), seed = hashStr('anticuerpos-'+key), r = mulberry32(seed), dow = new Date().getDay();
     var rules = DAILY_RULES[Math.floor(r()*DAILY_RULES.length)], perk = PERKS[Math.floor(r()*PERKS.length)], names = botNames();
-    var easy = dow>=1 && dow<=3;   /* lunes a miércoles, rival normal; el resto de la semana, difícil */
-    return {key:key, seed:seed, rules:rules, perk:perk, turn:Math.floor(r()*2), avatar:Math.floor(r()*2), name:names[Math.floor(r()*names.length)],
+    var perks = [perk]; if(rules.indexOf('headStart')>-1 && perk!=='seed') perks.push('seed');   /* si el rival empieza con ventaja, tú también */
+    var easy = (dow>=1 && dow<=3) || rules.indexOf('headStart')>-1;   /* lunes a miércoles (y los días de ventaja), rival normal; el resto, difícil */
+    return {key:key, seed:seed, rules:rules, perk:perk, perks:perks, turn:Math.floor(r()*2), avatar:Math.floor(r()*2), name:names[Math.floor(r()*names.length)],
       prof:{lv:easy ? 'normal' : 'hard', slip:easy ? .1 : .15, look:easy ? 0 : .25, noise:4, boss:null, daily:true, rules:rules}};
   }
   var DAILY = (function(){
@@ -1273,7 +1273,7 @@
     root.innerHTML = '<div class="overlay" id="dailyMenu"><div class="modal adv-modal">'+
       '<h3>'+T('daily.title')+'</h3><p class="adv-intro">'+T('daily.intro')+'</p>'+
       '<div class="adv-card"><b>'+escapeHtml(date)+'</b><small>'+T('daily.rival', {n:escapeHtml(def.name)})+'</small>'+
-        '<h4>'+T('daily.rules')+'</h4><ul class="adv-list">'+advRulesHTML(def.rules)+'</ul><h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML([def.perk])+'</ul>'+
+        '<h4>'+T('daily.rules')+'</h4><ul class="adv-list">'+advRulesHTML(def.rules)+'</ul><h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML(def.perks)+'</ul>'+
         '<span class="adv-prog">'+T(done ? 'daily.done' : 'daily.todo')+'</span>'+
         '<span class="adv-prog">'+T('daily.streak', {n:dailyStreak(), b:DAILY.best})+'</span>'+
         '<button id="dailyGo">'+T(done ? 'daily.again' : 'daily.play')+'</button></div>'+
@@ -1281,7 +1281,7 @@
       '<button class="modal-sound" id="dailyClose">'+T('help.close')+'</button></div></div>';
     document.getElementById('dailyGo').addEventListener('click', function(){
       root.innerHTML = ''; var d = dailyDef();
-      advRun = {mode:'daily', def:d, d:{level:1, lives:1, perks:[d.perk]}}; showAdvIntro();
+      advRun = {mode:'daily', def:d, d:{level:1, lives:1, perks:d.perks.slice()}}; showAdvIntro();
     });
     document.getElementById('dailyRank').addEventListener('click', function(){ openRanking('streak'); });
     document.getElementById('dailyClose').addEventListener('click', function(){ root.innerHTML = ''; });
@@ -1497,7 +1497,7 @@
   function cardForLog(entry){
     if(!entry || typeof entry==='string') return null;
     var c = entry.p && entry.p.c, k = entry.k;
-    var tr = {barrier:'barrera', weaken:'inmuno', regen:'regen', steal:'ladron', transplant:'transplante', contagion:'contagio', glove:'guante', error:'error'};
+    var tr = {barrier:'barrera', weaken:'inmuno', regen:'regen', epidemic:'epidemia', amputate:'amputacion', adrenaline:'adrenalina', anesthesia:'anestesia', campaign:'campana'};
     if(tr[k]) return {id:-1, type:'treatment', kind:tr[k]};
     if(k==='organ') return {id:-1, type:'organ', color:c};
     if(k==='infect' || k==='destroy' || k==='unvaccinate') return {id:-1, type:'virus', color:c};
@@ -1807,7 +1807,7 @@
     if((state.gloveFor||[]).length>0) return;
     state.turnCount = (state.turnCount||0)+1;
     if(state.bonus){ state.bonus = false; }   /* poder de doctor: vuelve a jugar el mismo */
-    else state.turn = (state.turn+1) % state.players.length;
+    else state.turn = nextTurnIndex();
   }
   function commitOnlineAction(){
     endOnlineTurn();
@@ -1916,7 +1916,7 @@
   });
   function commitPassOnline(){
     state.turnCount=(state.turnCount||0)+1;
-    state.turn=(state.turn+1)%state.players.length;
+    state.turn=nextTurnIndex();
     render();
     pushOnlineState([]);
   }
