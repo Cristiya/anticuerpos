@@ -479,3 +479,31 @@ html[data-rm] #fxLayer,html[data-rm] .confetti-rain,html[data-rm] .ambient{displ
 @keyframes zoom-pop{from{transform:scale(.86);}to{transform:scale(1);}}
 @media (prefers-reduced-motion: reduce){ .zoom-layer,.zoom-box{animation:none;} }
 html[data-rm] .zoom-layer,html[data-rm] .zoom-box{animation:none!important;}
+
+/* ---------- Modo aventura ---------- */
+.btn-adventure{border-color:var(--treatment);color:var(--treatment);background:color-mix(in srgb, var(--treatment) 12%, var(--surface));}
+.adv-hud{flex:0 0 auto;margin:6px 10px 0;padding:6px 12px;border-radius:12px;border:1.5px solid color-mix(in srgb, var(--treatment) 40%, var(--line));background:color-mix(in srgb, var(--treatment) 10%, var(--surface));display:flex;align-items:center;gap:8px;font-size:.74rem;font-weight:700;text-align:left;}
+.adv-hud span{flex:1 1 auto;}
+.adv-hud i{font-style:normal;font-weight:600;color:var(--ink-dim);font-size:.66rem;text-decoration:underline;}
+.boss-tag{display:inline-block;background:#B71C1C;color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:6px;vertical-align:middle;}
+.adv-modal{max-height:90vh;overflow-y:auto;}
+.adv-intro{color:var(--ink-dim);font-size:.85rem;line-height:1.5;margin:0 0 12px;}
+.adv-card{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);margin-bottom:10px;}
+.adv-card b{font-size:1rem;font-family:"Space Grotesk",sans-serif;}
+.adv-card small{color:var(--ink-dim);font-size:.76rem;line-height:1.4;}
+.adv-prog{font-size:.78rem;font-weight:700;color:var(--accent-strong);}
+.adv-card button{margin-top:4px;}
+.adv-head{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.adv-head .avatar{width:56px;height:56px;flex:0 0 auto;}
+.adv-head h3{margin:2px 0 0;font-size:1.15rem;}
+.adv-head small{color:var(--ink-dim);font-size:.72rem;}
+.adv-level{color:var(--ink-dim);font-size:.84rem;margin:0 0 10px;}
+.adv-intro-modal.is-boss{border-color:#B71C1C;box-shadow:0 0 0 3px color-mix(in srgb, #B71C1C 25%, transparent), var(--shadow);}
+.modal .adv-list{list-style:none;margin:0 0 12px;padding:0;font-size:.8rem;line-height:1.45;color:var(--ink-dim);display:flex;flex-direction:column;gap:5px;}
+.modal .adv-list li{padding:6px 9px;border-radius:9px;background:var(--surface-2);}
+.modal .adv-list li b{color:var(--ink);}
+.modal .adv-list li.adv-none{background:none;padding:0;font-style:italic;}
+.adv-msg{font-weight:700;margin:0 0 10px !important;color:var(--ink) !important;}
+.modal .perk-opt{display:block;text-align:left;background:color-mix(in srgb, var(--treatment) 10%, var(--surface));color:var(--ink);border:1.5px solid color-mix(in srgb, var(--treatment) 45%, var(--line));margin-bottom:8px;}
+.perk-opt b{display:block;font-size:.88rem;}
+.perk-opt small{display:block;font-size:.72rem;color:var(--ink-dim);font-weight:500;margin-top:2px;line-height:1.35;}

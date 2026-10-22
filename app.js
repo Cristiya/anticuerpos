@@ -120,7 +120,7 @@
   }
   /* Las CPU difíciles ven una carta más: roban una extra y se quedan con las 3 mejores. La mano nunca pasa de 3 cartas. */
   function extraLook(p){
-    if(p.hand.length<HAND_SIZE || Math.random()>=HARD.look || !drawOne(p)) return;
+    if(p.hand.length<HAND_SIZE || Math.random()>=botParam(p,'look') || !drawOne(p)) return;
     var base = evalFor(p), acts = legalActions(p), worst = null, worstV = 1e9;
     p.hand.forEach(function(card){
       var best = -1e9;
@@ -130,7 +130,8 @@
     if(worst){ p.hand.splice(p.hand.indexOf(worst), 1); state.discard.push(worst); }
   }
   function drawToHand(player){
-    while(player.hand.length<HAND_SIZE){ if(!drawOne(player)) break; }
+    var size = HAND_SIZE + advHandBonus(player);
+    while(player.hand.length<size){ if(!drawOne(player)) break; }
     if(player.isBot && levelOf(player)==='hard') extraLook(player);
   }
   function removeFromHand(player, card){
@@ -165,6 +166,7 @@
       return COLORS.filter(function(c){
         var s=actor.board[c];
         if(!s || s.status==='immune') return false;
+        if(advRule('noProtect') && actor.id===MY_ID && s.status!=='infected') return false;   /* jefe: tus anticuerpos solo curan */
         return card.color==='wild' || s.color===card.color;
       }).map(function(c){ return {playerId:actor.id, slot:c}; });
     }
@@ -242,24 +244,29 @@
     removeFromHand(actor, card);
     if(card.type==='organ'){
       actor.board[target.slot] = {id: card.id, color: card.color==='wild'?target.slot:card.color, wild: card.color==='wild', status:'healthy'};
+      if(state.adv) advOnPlace(actor, actor.board[target.slot]);
       addLog('organ', {a:actor.name, ai:actor.id, c:target.slot});
     } else if(card.type==='medicine'){
       var s1 = actor.board[target.slot];
       /* sano + medicina = vacunado; vacunado + segunda medicina = inmune */
-      if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
+      if(s1.status==='healthy' && advFirstImmune(actor)){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); statCount('immunes', actor); powerDraw(actor, 1); }
+      else if(s1.status==='healthy'){ s1.status='vaccinated'; addLog('vaccinate', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 1); }
       else if(s1.status==='vaccinated'){ s1.status='immune'; addLog('immunize', {a:actor.name, ai:actor.id, c:target.slot}); statCount('immunes', actor); powerDraw(actor, 1); }
-      else if(s1.status==='infected'){ s1.status = 'healthy'; statCount('heals', actor); if(HARD.p1heal) powerDraw(actor, 1); addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); }
+      else if(s1.status==='infected'){ s1.status = 'healthy'; statCount('heals', actor); if(HARD.p1heal) powerDraw(actor, 1); addLog('heal', {a:actor.name, ai:actor.id, c:target.slot}); powerDraw(actor, 0); advHealBonus(actor); }
     } else if(card.type==='virus'){
       var owner = state.players.find(function(p){ return p.id===target.playerId; });
       var s2 = owner.board[target.slot];
       if(s2.status==='healthy'){ s2.status='infected'; addLog('infect', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('infections', actor); if(owner.id===MY_ID) gameFlags.hit = true; if(HARD.p2infect) powerDraw(actor, 2); }
       else if(s2.status==='vaccinated'){ s2.status='healthy'; addLog('unvaccinate', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); powerDraw(actor, 2); }
       else if(s2.status==='infected'){
+        var rv = advRevive(owner, s2);
+        if(rv){ addLog(rv, {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); }
+        else {
         owner.board[target.slot]=null;
         /* el órgano destruido vuelve al descarte para que el mazo no se agote */
         if(s2.id!=null) state.discard.push({id:s2.id, type:'organ', color:s2.wild?'wild':s2.color});
         addLog('destroy', {a:actor.name, ai:actor.id, c:target.slot, o:owner.name, oi:owner.id}); statCount('destroys', actor); if(owner.id===MY_ID) gameFlags.hit = true;
-        powerDraw(actor, 2); }
+        powerDraw(actor, 2); } }
     }
     /* un órgano jugado se queda en el tablero; solo vuelve al descarte si lo destruyen (más arriba) */
     if(card.type!=='organ') state.discard.push(card);
@@ -466,6 +473,7 @@
   }
   var botTimer = null;
   function advanceTurn(){
+    if(state.adv) advTurnHooks();
     /* poder de doctor: el mismo jugador vuelve a jugar (turnCount sube para que robe y se reprogramen las CPU) */
     if(state.bonus){ state.bonus = false; }
     else state.turn = (state.turn+1) % state.players.length;
@@ -498,13 +506,14 @@
      fácil  = juega al azar y a veces se despista descartando;
      normal = reglas fijas (la IA de siempre);
      difícil = simula cada jugada posible y elige la que mejor deja el tablero, vigilando al rival que va primero. */
+  function botParam(bot, k){ return (bot && bot.ai && bot.ai[k]!==undefined) ? bot.ai[k] : HARD[k]; }
   function levelOf(bot){ return bot.level || (state && state.difficulty) || 'normal'; }
   function decideBotAction(bot){
     var lvl = levelOf(bot);
     if(lvl==='easy') return decideEasyBot(bot);
     if(lvl==='hard') return decideHardBot(bot);
     /* normal: las reglas de siempre, pero a veces se equivoca y juega algo al azar */
-    if(Math.random()<HARD.slip){ var acts = legalActions(bot); if(acts.length) return pickRandom(acts); }
+    if(Math.random()<botParam(bot,'slip')){ var acts = legalActions(bot); if(acts.length) return pickRandom(acts); }
     return decideNormalBot(bot);
   }
   function pickRandom(list){ return list[Math.floor(Math.random()*list.length)]; }
@@ -629,7 +638,7 @@
         }
       }
     }
-    var noise = {}; opponentsOf(bot).forEach(function(o){ noise[o.id] = (Math.random()-.5)*2*HARD.noise; });
+    var noise = {}; opponentsOf(bot).forEach(function(o){ noise[o.id] = (Math.random()-.5)*2*botParam(bot,'noise'); });
     var ranked = opponentsOf(bot).slice().sort(function(a,b){ return (boardStrength(b)+noise[b.id])-(boardStrength(a)+noise[a.id]); });
     for(i=0;i<bot.hand.length;i++){
       card = bot.hand[i];
@@ -762,8 +771,12 @@
     {bg:'#C99423', skin:'#8A5A3B', cap:'#E25B4A', extra:'<path d="M9.5 23c0 3 1.6 4.6 3.5 4.6" stroke="#16262A" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="13.2" cy="27.8" r="1.2" fill="#16262A"/>'},
     {bg:'#D6483F', skin:'#F6D5B8', cap:'#3E9B52', extra:'<circle cx="16" cy="5.4" r="1.5" fill="#3E9B52"/>'}
   ];
-  function avatarHTML(i, mood){
-    var a = AVATARS[((i%4)+4)%4];
+  var BOSS_AVATARS = [
+    {bg:'#2A1B3D', skin:'#9DB88A', cap:'#7B1FA2', extra:'<path d=\"M8.5 7.5L6 2.5l5 3zM23.5 7.5L26 2.5l-5 3z\" fill=\"#E0B84A\"/>'},
+    {bg:'#3B0A0A', skin:'#C9A28F', cap:'#B71C1C', extra:'<path d=\"M9.5 6.5l2-3.5 2.2 2.6 2.3-3.6 2.3 3.6 2.2-2.6 2 3.5z\" fill=\"#E0B84A\"/>'}
+  ];
+  function avatarHTML(i, mood, boss){
+    var a = boss!==undefined ? BOSS_AVATARS[boss] : AVATARS[((i%4)+4)%4];
     var eyes = '<circle cx="13.600" cy="15" r=".95" fill="#16262A"/><circle cx="18.400" cy="15" r=".95" fill="#16262A"/>';
     if(mood==='happy') eyes = '<path d="M12.300 15.500a1.300 1.300 0 0 1 2.600 0M17.100 15.500a1.300 1.300 0 0 1 2.600 0" stroke="#16262A" stroke-width=".9" fill="none" stroke-linecap="round"/>';
     if(mood==='scared') eyes = '<circle cx="13.600" cy="15" r="1.700" fill="#fff" stroke="#16262A" stroke-width=".5"/><circle cx="18.400" cy="15" r="1.700" fill="#fff" stroke="#16262A" stroke-width=".5"/><circle cx="13.600" cy="15" r=".6" fill="#16262A"/><circle cx="18.400" cy="15" r=".6" fill="#16262A"/><path d="M12 12.600l3-.8M20 12.600l-3-.8" stroke="#16262A" stroke-width=".7" stroke-linecap="round"/>';
@@ -913,7 +926,10 @@
     {id:'destroyer', ok:function(s){ return s.destroys>=10; }},
     {id:'healer', ok:function(s){ return s.heals>=10; }},
     {id:'shielder', ok:function(s){ return s.barriers>=5; }},
-    {id:'student', ok:function(){ return tutDone(); }}
+    {id:'student', ok:function(){ return tutDone(); }},
+    {id:'adv_boss', ok:function(){ return ADV.bosses>=1; }},
+    {id:'adv_campaign', ok:function(){ return ADV.campDone; }},
+    {id:'adv_tower5', ok:function(){ return ADV.towerRecord>=5; }}
   ];
   function checkAchievements(ctx){
     var fresh = [];
@@ -972,6 +988,231 @@
     document.getElementById('a11yClose').addEventListener('click', function(){ root.innerHTML = ''; });
     document.getElementById('a11yOverlay').addEventListener('click', function(e){ if(e.target.id==='a11yOverlay') root.innerHTML = ''; });
   }
+
+  /* ================= Modo aventura: campaña de 10 niveles y torre infinita ================= */
+  var ADV_KEY = 'anticuerpos_adv';
+  var BOSSES = {
+    plaga:   {rules:['headStart','purge'],             avatar:0},
+    reina:   {rules:['armored','doubleTurn','hydra'],  avatar:1},
+    coloso:  {rules:['colossus','noProtect'],          avatar:0},
+    colonia: {rules:['headStart','hydra','purge'],     avatar:1}
+  };
+  var CAMP = [
+    {lv:'easy'}, {lv:'easy'},
+    {lv:'normal', slip:.4}, {lv:'normal', slip:.25},
+    {lv:'normal', slip:.12, boss:'plaga'},
+    {lv:'normal', slip:.06},
+    {lv:'hard', look:.15}, {lv:'hard', look:.3}, {lv:'hard', look:.5},
+    {lv:'hard', look:.6, boss:'reina'}
+  ];
+  var PERKS = ['seed','hand','first_immune','first_protect','second_wind','first_heal'];
+  function loadAdv(){
+    var o = {camp:{level:1, perks:[]}, tower:{level:1, lives:3, perks:[]}, campDone:false, bosses:0, towerRecord:0, campBest:0};
+    try{
+      var s = JSON.parse(localStorage.getItem(ADV_KEY)||'{}');
+      if(s.camp) Object.assign(o.camp, s.camp);
+      if(s.tower) Object.assign(o.tower, s.tower);
+      ['campDone','bosses','towerRecord','campBest'].forEach(function(k){ if(s[k]!==undefined) o[k] = s[k]; });
+    }catch(e){}
+    return o;
+  }
+  var ADV = loadAdv(), advRun = null;
+  function saveAdv(){ try{ localStorage.setItem(ADV_KEY, JSON.stringify(ADV)); }catch(e){} }
+  function advData(){ return advRun.mode==='campaign' ? ADV.camp : ADV.tower; }
+  /* perfil del rival según el modo y el nivel: dificultad, fallos, vista extra y jefe */
+  function advProfile(mode, n){
+    if(mode==='campaign'){ var c = CAMP[Math.min(n, CAMP.length)-1]; return {lv:c.lv, slip:c.slip!==undefined ? c.slip : .2, look:c.look||0, noise:4, boss:c.boss||null}; }
+    var boss = (n%5===0) ? ['plaga','reina','coloso','colonia'][((n/5)-1)%4] : null, p = {noise:4, boss:boss, slip:.2, look:0};
+    if(n<=2) p.lv = 'easy';
+    else if(n<=6){ p.lv = 'normal'; p.slip = Math.max(.05, .5-.09*n); }
+    else { p.lv = 'hard'; p.look = Math.min(.95, .12*(n-5)); }
+    return p;
+  }
+  function advRivalName(mode, n, prof){
+    if(prof.boss) return T('adv.boss.'+prof.boss);
+    if(mode==='campaign') return T('adv.rival.'+n);
+    var names = botNames(); return names[(n-1)%names.length];
+  }
+  function advRule(id){ return !!(state && state.adv && state.adv.rules.indexOf(id)>-1); }
+  function advPerk(id){ return !!(state && state.adv && state.adv.perks.indexOf(id)>-1); }
+  function advHandBonus(p){ return (state && state.adv && p.id===MY_ID && state.adv.perks.indexOf('hand')>-1) ? 1 : 0; }
+  /* al colocar un órgano: armadura y coloso del jefe, protección inicial de tu mejora */
+  function advOnPlace(actor, org){
+    var a = state.adv;
+    if(actor.boss){
+      if(a.rules.indexOf('armored')>-1) org.status = 'vaccinated';
+      if(a.rules.indexOf('colossus')>-1 && !a.used.colossus){ a.used.colossus = true; org.status = 'immune'; }
+    } else if(actor.id===MY_ID && a.perks.indexOf('first_protect')>-1 && !a.used.protect){
+      a.used.protect = true; org.status = 'vaccinated';
+    }
+  }
+  function advFirstImmune(actor){
+    if(state.adv && actor.id===MY_ID && advPerk('first_immune') && !state.adv.used.immune){ state.adv.used.immune = true; return true; }
+    return false;
+  }
+  function advHealBonus(actor){
+    if(state.adv && actor.id===MY_ID && advPerk('first_heal') && !state.adv.used.heal && !state.bonus){
+      state.adv.used.heal = true; state.bonus = true; addLog('perkAgain', {a:actor.name, ai:actor.id});
+    }
+  }
+  /* el órgano no muere: la hidra del jefe o tu segundo aliento (una vez por partida) */
+  function advRevive(owner, s2){
+    var a = state.adv; if(!a) return false;
+    if(owner.boss && a.rules.indexOf('hydra')>-1 && !a.used.hydra){ a.used.hydra = true; s2.status = 'healthy'; return 'hydra'; }
+    if(owner.id===MY_ID && a.perks.indexOf('second_wind')>-1 && !a.used.wind){ a.used.wind = true; s2.status = 'healthy'; return 'wind'; }
+    return false;
+  }
+  /* reglas de jefe que actúan al pasar el turno: turno doble y purga de tu mano */
+  function advTurnHooks(){
+    var a = state.adv, cur = currentPlayer();
+    if(!cur || !cur.boss) return;
+    if(a.rules.indexOf('doubleTurn')>-1 && !state.bonus){
+      cur.bt = (cur.bt||0)+1;
+      if(cur.bt%4===0){ state.bonus = true; addLog('bossAgain', {a:cur.name, ai:cur.id}); }
+    }
+    if(a.rules.indexOf('purge')>-1){
+      cur.pt = (cur.pt||0)+1;
+      if(cur.pt%3===0){
+        var h = state.players[0];
+        if(h.hand.length){ state.discard.push(h.hand.splice(Math.floor(Math.random()*h.hand.length), 1)[0]); addLog('purge', {a:cur.name, ai:cur.id}); }
+      }
+    }
+  }
+  function advLivesText(n){ var s = ''; for(var i=0;i<3;i++) s += i<n ? '♥' : '♡'; return s; }
+  function advRulesHTML(rules){
+    return rules.map(function(r){ return '<li><b>'+T('adv.rule.'+r+'.name')+':</b> '+T('adv.rule.'+r+'.desc')+'</li>'; }).join('');
+  }
+  function advPerksHTML(perks){
+    if(!perks.length) return '<li class="adv-none">'+T('adv.noPerks')+'</li>';
+    return perks.map(function(p){ return '<li><b>'+T('adv.perk.'+p+'.name')+':</b> '+T('adv.perk.'+p+'.desc')+'</li>'; }).join('');
+  }
+  function openAdvMenu(){
+    var root = document.getElementById('overlayRoot'), c = ADV.camp, t = ADV.tower;
+    var campLine = ADV.campDone && c.level===1 ? T('adv.camp.done') : T('adv.camp.progress', {n:c.level});
+    root.innerHTML = '<div class="overlay" id="advMenu"><div class="modal adv-modal">'+
+      '<h3>'+T('adv.title')+'</h3><p class="adv-intro">'+T('adv.intro')+'</p>'+
+      '<div class="adv-card"><b>'+T('adv.camp')+'</b><small>'+T('adv.camp.desc')+'</small><span class="adv-prog">'+campLine+'</span>'+
+        '<button data-adv="campaign">'+T(c.level>1 ? 'adv.continue' : 'adv.begin')+'</button>'+
+        (c.level>1 ? '<button class="modal-sound" data-adv-reset="campaign">'+T('adv.restart')+'</button>' : '')+'</div>'+
+      '<div class="adv-card"><b>'+T('adv.tower')+'</b><small>'+T('adv.tower.desc')+'</small><span class="adv-prog">'+T('adv.tower.progress', {n:t.level, l:advLivesText(t.lives), r:ADV.towerRecord})+'</span>'+
+        '<button data-adv="tower">'+T(t.level>1 ? 'adv.continue' : 'adv.begin')+'</button>'+
+        (t.level>1 ? '<button class="modal-sound" data-adv-reset="tower">'+T('adv.restart')+'</button>' : '')+'</div>'+
+      '<button class="modal-sound" id="advClose">'+T('help.close')+'</button></div></div>';
+    Array.prototype.forEach.call(root.querySelectorAll('[data-adv]'), function(b){
+      b.addEventListener('click', function(){ root.innerHTML = ''; advRun = {mode:b.getAttribute('data-adv')}; showAdvIntro(); });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll('[data-adv-reset]'), function(b){
+      b.addEventListener('click', function(){
+        if(!window.confirm(T('adv.restartConfirm'))) return;
+        if(b.getAttribute('data-adv-reset')==='campaign') ADV.camp = {level:1, perks:[]}; else ADV.tower = {level:1, lives:3, perks:[]};
+        saveAdv(); openAdvMenu();
+      });
+    });
+    document.getElementById('advClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('advMenu').addEventListener('click', function(e){ if(e.target.id==='advMenu') root.innerHTML = ''; });
+  }
+  /* pantalla de presentación del nivel: rival, reglas del jefe y tus mejoras */
+  function showAdvIntro(){
+    var root = document.getElementById('overlayRoot'), d = advData(), n = d.level, prof = advProfile(advRun.mode, n);
+    var name = advRivalName(advRun.mode, n, prof), rules = prof.boss ? BOSSES[prof.boss].rules : [];
+    var av = prof.boss ? avatarHTML(0, 'neutral', BOSSES[prof.boss].avatar) : avatarHTML(n, 'neutral');
+    var head = advRun.mode==='campaign' ? T('adv.hud.camp', {n:n}) : T('adv.hud.tower', {n:n, l:advLivesText(d.lives)});
+    root.innerHTML = '<div class="overlay" id="advIntro"><div class="modal adv-modal adv-intro-modal'+(prof.boss ? ' is-boss' : '')+'">'+
+      '<div class="adv-head">'+av+'<div><small>'+head+'</small><h3>'+(prof.boss ? '<span class="boss-tag">'+T('adv.boss')+'</span> ' : '')+escapeHtml(name)+'</h3></div></div>'+
+      '<p class="adv-level">'+T('adv.level.'+prof.lv)+'</p>'+
+      (rules.length ? '<h4>'+T('adv.bossRules')+'</h4><ul class="adv-list">'+advRulesHTML(rules)+'</ul>' : '')+
+      '<h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML(d.perks)+'</ul>'+
+      '<button id="advGo">'+T('adv.start')+'</button><button class="modal-sound" id="advExit">'+T('adv.exit')+'</button></div></div>';
+    document.getElementById('advGo').addEventListener('click', function(){ root.innerHTML = ''; startAdvMatch(); });
+    document.getElementById('advExit').addEventListener('click', function(){ root.innerHTML = ''; advRun = null; goToSetup(); });
+  }
+  function startAdvMatch(){
+    var d = advData(), n = d.level, prof = advProfile(advRun.mode, n), rules = prof.boss ? BOSSES[prof.boss].rules : [];
+    TUTORIAL = false; GAME_MODE = 'local'; MY_ID = 'human';
+    winShown = false; powerToastShown = true; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = []; botTimer = null;
+    prevSlots = null; prevCounts = null; prevLogKey = null; touched = {}; gameFlags = {hit:false};
+    var human = newPlayer('human', T('you'), false), rival = newPlayer('bot0', advRivalName(advRun.mode, n, prof), true);
+    rival.level = prof.lv; rival.ai = {slip:prof.slip, look:prof.look, noise:prof.noise};
+    if(prof.boss){ rival.boss = prof.boss; rival.bossAvatar = BOSSES[prof.boss].avatar; } else rival.avatar = n;
+    state = {players:[human, rival], deck:buildDeck(), discard:[], turn:Math.floor(Math.random()*2), turnCount:0, log:[], over:false, winnerId:null,
+      difficulty:prof.lv, adv:{mode:advRun.mode, level:n, boss:prof.boss, rules:rules.slice(), perks:d.perks.slice(), used:{}}};
+    /* ventajas de partida: órgano inicial (mejora) y cuerpo adelantado del jefe */
+    var free = COLORS.slice().sort(function(){ return Math.random()-.5; });
+    function give(p, color){ p.board[color] = {id:9000+Math.floor(Math.random()*9000), color:color, wild:false, status:'healthy'}; }
+    if(d.perks.indexOf('seed')>-1) give(human, free[0]);
+    if(rules.indexOf('headStart')>-1){ var f2 = COLORS.slice().sort(function(){ return Math.random()-.5; }); give(rival, f2[0]); give(rival, f2[1]); }
+    state.players.forEach(function(p){ if(p.boss && rules.indexOf('armored')>-1) COLORS.forEach(function(c){ if(p.board[c]) p.board[c].status = 'vaccinated'; }); });
+    state.players.forEach(function(p){ drawToHand(p); });
+    addLog('start');
+    showScreen('game');
+    beginTurn();
+  }
+  /* abandonar una partida de aventura a medias cuenta como derrota en la torre */
+  function advAbandon(){
+    if(!advRun || advRun.mode!=='tower') return;
+    ADV.tower.lives--;
+    if(ADV.tower.lives<=0) ADV.tower = {level:1, lives:3, perks:[]};
+    saveAdv();
+  }
+  /* resultado de una partida de aventura: actualiza el progreso y devuelve el bloque de botones */
+  function advEndBlock(iWon){
+    var d = advData(), mode = advRun.mode, n = d.level, prof = advProfile(mode, n), html = '', fresh = [];
+    if(iWon){
+      if(prof.boss) ADV.bosses++;
+      if(mode==='campaign'){ ADV.campBest = Math.max(ADV.campBest, n); }
+      else { ADV.towerRecord = Math.max(ADV.towerRecord, n); }
+      var finished = (mode==='campaign' && n>=CAMP.length);
+      if(finished){ ADV.campDone = true; ADV.camp = {level:1, perks:[]}; }
+      else d.level = n+1;
+      saveAdv();
+      fresh = checkAchievements({});
+      var opts = PERKS.filter(function(p){ return d.perks.indexOf(p)<0; }).sort(function(){ return Math.random()-.5; }).slice(0, 3);
+      if(finished) html = '<p class="adv-msg">'+T('adv.camp.won')+'</p><button id="advMenuBtn">'+T('adv.menu')+'</button>';
+      else if(opts.length) html = '<p class="adv-msg">'+T('adv.cleared')+'</p><h4>'+T('adv.pick')+'</h4>'+opts.map(function(p){
+        return '<button class="perk-opt" data-perk="'+p+'"><b>'+T('adv.perk.'+p+'.name')+'</b><small>'+T('adv.perk.'+p+'.desc')+'</small></button>'; }).join('');
+      else html = '<p class="adv-msg">'+T('adv.cleared')+'</p><button id="advNext">'+T('adv.next')+'</button>';
+    } else if(mode==='campaign'){
+      html = '<p class="adv-msg">'+T('adv.lost.camp')+'</p><button id="advRetry">'+T('adv.retry')+'</button>';
+    } else {
+      d.lives--;
+      if(d.lives>0) html = '<p class="adv-msg">'+T('adv.lost.life', {l:advLivesText(d.lives)})+'</p><button id="advRetry">'+T('adv.retry')+'</button>';
+      else { ADV.towerRecord = Math.max(ADV.towerRecord, n-1); ADV.tower = {level:1, lives:3, perks:[]}; html = '<p class="adv-msg">'+T('adv.lost.end', {n:n, r:ADV.towerRecord})+'</p><button id="advMenuBtn">'+T('adv.menu')+'</button>'; }
+      saveAdv(); fresh = checkAchievements({});
+    }
+    html += '<button class="modal-sound" id="advLeave">'+T('adv.exit')+'</button>';
+    var ach = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
+    return {html:ach+html, bind:function(root){
+      Array.prototype.forEach.call(root.querySelectorAll('[data-perk]'), function(b){
+        b.addEventListener('click', function(){ d.perks.push(b.getAttribute('data-perk')); saveAdv(); root.innerHTML = ''; showAdvIntro(); });
+      });
+      var q = function(id, fn){ var e = document.getElementById(id); if(e) e.addEventListener('click', fn); };
+      q('advNext', function(){ root.innerHTML = ''; showAdvIntro(); });
+      q('advRetry', function(){ root.innerHTML = ''; showAdvIntro(); });
+      q('advMenuBtn', function(){ root.innerHTML = ''; advRun = null; goToSetup(); openAdvMenu(); });
+      q('advLeave', function(){ root.innerHTML = ''; advRun = null; goToSetup(); });
+    }};
+  }
+  function advHudSync(){
+    var hud = document.getElementById('advHud'); if(!hud) return;
+    if(!state || !state.adv){ hud.hidden = true; return; }
+    var a = state.adv, d = advRun ? advData() : null;
+    hud.hidden = false;
+    var txt = a.mode==='campaign' ? T('adv.hud.camp', {n:a.level}) : T('adv.hud.tower', {n:a.level, l:advLivesText(ADV.tower.lives)});
+    hud.innerHTML = '<span>'+txt+'</span>'+(a.boss ? '<b class="boss-tag">'+T('adv.boss')+'</b>' : '')+'<i>'+T('adv.hud.info')+'</i>';
+  }
+  function advInfoHTML(){
+    var a = state.adv;
+    return '<b>'+T('adv.title')+'</b>'+(a.rules.length ? '<ul class="plist">'+advRulesHTML(a.rules)+'</ul>' : '')+'<ul class="plist">'+advPerksHTML(a.perks)+'</ul>';
+  }
+  document.getElementById('advHud').addEventListener('click', function(){
+    if(!state || !state.adv) return;
+    var root = document.getElementById('overlayRoot');
+    root.innerHTML = '<div class="overlay" id="advInfo"><div class="modal adv-modal"><h3>'+T('adv.title')+'</h3>'+
+      (state.adv.rules.length ? '<h4>'+T('adv.bossRules')+'</h4><ul class="adv-list">'+advRulesHTML(state.adv.rules)+'</ul>' : '')+
+      '<h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML(state.adv.perks)+'</ul><button id="advInfoClose">'+T('help.close')+'</button></div></div>';
+    document.getElementById('advInfoClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('advInfo').addEventListener('click', function(e){ if(e.target.id==='advInfo') root.innerHTML = ''; });
+  });
 
   /* ================= Aviso de turno, destello de borde y marca de lo que acaba de tocar un rival ================= */
   function showBanner(html, kind){
@@ -1224,6 +1465,7 @@
     updateStatusLine();
     animatePlays(before);
     tutorialSync();
+    advHudSync();
     /* al empezar, recuerda qué doctor eres y cuál es tu poder */
     if(!powerToastShown && state.log.length<=1 && !state.over && me()){
       powerToastShown = true;
@@ -1249,7 +1491,7 @@
       var handCount = p.hand ? p.hand.length : ((state.handCounts && state.handCounts[p.id]) || 0);
       var backs = ''; for(var b=0;b<handCount;b++) backs += '<span class="cardback"></span>';
       return '<div class="oppcard'+active+'">'+
-        '<div class="opphead"><div class="oppwho" title="'+escapeHtml(T('power.'+powerOf(p)+'.name')+': '+T('power.'+powerOf(p)+'.desc'))+'">'+avatarHTML(state.players.indexOf(p), moodOf(p))+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
+        '<div class="opphead"><div class="oppwho" title="'+escapeHtml(T('power.'+powerOf(p)+'.name')+': '+T('power.'+powerOf(p)+'.desc'))+'">'+avatarHTML(p.avatar!==undefined ? p.avatar : state.players.indexOf(p), moodOf(p), p.boss ? p.bossAvatar : undefined)+'<div class="oppname">'+escapeHtml(p.name)+'</div></div><div class="opphand mono">'+backs+' '+handCount+'</div></div>'+
         '<div class="oppslots">'+slots+'</div>'+
       '</div>';
     }).join('');
@@ -1558,6 +1800,7 @@
       '<li>'+T('help.doctors')+'<ul class="plist">'+[0,1,2,3].map(function(i){
         return '<li'+(i===powerOf(me()) ? ' class="mine-power"' : '')+'><b>'+T('power.'+i+'.name')+':</b> '+T('power.'+i+'.desc')+'</li>';
       }).join('')+'</ul></li>'+
+      (state && state.adv ? '<li>'+advInfoHTML()+'</li>' : '')+
       '</ul>'+
       '<button id="helpClose">'+T('help.close')+'</button>'+
       '<button id="helpSound" class="modal-sound"></button>'+
@@ -1569,6 +1812,7 @@
     document.getElementById('helpLeave').addEventListener('click', function(){
       if(!window.confirm(T('help.leaveConfirm'))) return;
       root.innerHTML='';
+      if(state && state.adv && !state.over) advAbandon();
       clearTimeout(botTimer);
       clearSelection(); discardMode=false; discardMarks=[];
       leaveOnlineRoomSilently(true);
@@ -1586,6 +1830,7 @@
     var iWon = winner.id===MY_ID;
     Sfx.play(iWon ? 'win' : 'lose');
     var fresh = recordGame(winner);   /* estadísticas y logros de esta partida */
+    var advBlock = (state.adv && advRun) ? advEndBlock(iWon) : null;   /* aventura: progreso, mejoras y vidas */
     var achHTML = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
     var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
     /* el cuerpo completo del ganador, órgano a órgano; el escudo marca los inmunes */
@@ -1604,12 +1849,15 @@
       '<div class="win-body" aria-hidden="true">'+body+'</div>'+
       '<h2>'+(iWon ? T('win.me') : escapeHtml(T('win.other',{n:winner.name}))) +'</h2>'+
       '<p>'+msg+'</p>'+achHTML+
-      (GAME_MODE==='online'
+      (advBlock ? advBlock.html :
+      GAME_MODE==='online'
         ? (isOnlineHost ? '<button id="rematch">'+T('win.rematch')+'</button>' : '<p class="rematch-wait">'+T('win.waitRematch')+'</p>')+
           '<button id="playAgain" class="modal-sound">'+T('btn.leaveLobby')+'</button>'
         : '<button id="playAgain">'+T('win.again')+'</button>')+
       '</div></div>';
-    document.getElementById('playAgain').addEventListener('click', function(){
+    if(advBlock) advBlock.bind(root);
+    var pa = document.getElementById('playAgain');
+    if(pa) pa.addEventListener('click', function(){
       root.innerHTML='';
       leaveOnlineRoomSilently(true);
       goToSetup();
@@ -1699,6 +1947,7 @@
   });
   refreshDifficultyUI();
   document.getElementById('btnTutorial').addEventListener('click', function(){ Sfx.play('tap'); startTutorial(); });
+  document.getElementById('btnAdventure').addEventListener('click', function(){ Sfx.play('tap'); openAdvMenu(); });
   document.getElementById('btnStats').addEventListener('click', function(){ Sfx.play('tap'); showStats(); });
   document.getElementById('btnA11y').addEventListener('click', function(){ Sfx.play('tap'); showA11yPanel(); });
   refreshTutorialButton();
