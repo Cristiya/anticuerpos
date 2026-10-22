@@ -1,6 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Ranking opcional: un documento por jugador (su uid) con su apodo y sus marcas.
+    // Cada uno solo escribe el suyo; las marcas no bajan y no suben mas de unos pocos puntos por escritura.
+    match /ranking/{uid} {
+      function rk() { return request.resource.data; }
+      function rkShape() {
+        return rk().keys().hasOnly(['name', 'tower', 'streak', 'updatedAt'])
+          && rk().name is string && rk().name.size() >= 3 && rk().name.size() <= 14
+          && rk().tower is int && rk().tower >= 0 && rk().tower <= 99
+          && rk().streak is int && rk().streak >= 0 && rk().streak <= 999
+          && rk().updatedAt == request.time;
+      }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid && rkShape();
+      allow update: if request.auth != null && request.auth.uid == uid && rkShape()
+        && rk().tower >= resource.data.tower && rk().tower <= resource.data.tower + 3
+        && rk().streak >= resource.data.streak && rk().streak <= resource.data.streak + 3;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /rooms/{roomId} {
 
       function signedIn() { return request.auth != null; }

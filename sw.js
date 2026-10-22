@@ -1,4 +1,4 @@
-var CACHE = 'anticuerpos-v22';
+﻿var CACHE = 'anticuerpos-v23';
 var ASSETS = [
   './',
   './index.html',
@@ -11,8 +11,8 @@ var ASSETS = [
   './icons/icon-512.png'
 ];
 
-/* Siempre se pide la versión fresca al servidor (cache:'no-cache' revalida y se salta los 10 min
-   de caché HTTP de GitHub Pages); la copia guardada solo se usa si no hay conexión. */
+/* Siempre se pide la versiÃ³n fresca al servidor (cache:'no-cache' revalida y se salta los 10 min
+   de cachÃ© HTTP de GitHub Pages); la copia guardada solo se usa si no hay conexiÃ³n. */
 function fresh(url){ return fetch(url, {cache:'no-cache'}); }
 
 self.addEventListener('install', function(e){

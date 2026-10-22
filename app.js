@@ -54,11 +54,12 @@
   var DECK_ICON = svgWrap('<path d="M7 4h7l4 4v12H7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/><path d="M14 4v4h4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/><path d="M9.5 13a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.8-1.1 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/><circle cx="12" cy="19.1" r=".9" fill="currentColor"/>');
 
   /* ================= DECK ================= */
-  function shuffle(arr){
-    for(var i=arr.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
+  function shuffle(arr, rng){
+    rng = rng || Math.random;
+    for(var i=arr.length-1;i>0;i--){ var j=Math.floor(rng()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
     return arr;
   }
-  function buildDeck(){
+  function buildDeck(rng){
     var deck=[]; var id=0;
     COLORS.forEach(function(c){
       for(var i=0;i<5;i++) deck.push({id:id++, type:'organ', color:c});
@@ -71,7 +72,7 @@
     [['contagio',2],['transplante',3],['ladron',3],['guante',2],['error',3],['barrera',2],['inmuno',2],['regen',2]].forEach(function(pair){
       for(var i=0;i<pair[1];i++) deck.push({id:id++, type:'treatment', kind:pair[0]});
     });
-    return shuffle(deck);
+    return shuffle(deck, rng);
   }
 
   /* ================= GLOBAL STATE ================= */
@@ -929,7 +930,9 @@
     {id:'student', ok:function(){ return tutDone(); }},
     {id:'adv_boss', ok:function(){ return ADV.bosses>=1; }},
     {id:'adv_campaign', ok:function(){ return ADV.campDone; }},
-    {id:'adv_tower5', ok:function(){ return ADV.towerRecord>=5; }}
+    {id:'adv_tower5', ok:function(){ return ADV.towerRecord>=5; }},
+    {id:'daily_first', ok:function(){ return DAILY.wins>=1; }},
+    {id:'daily_7', ok:function(){ return DAILY.best>=7; }}
   ];
   function checkAchievements(ctx){
     var fresh = [];
@@ -993,7 +996,7 @@
   var ADV_KEY = 'anticuerpos_adv';
   var BOSSES = {
     plaga:   {rules:['headStart','purge'],             avatar:0},
-    reina:   {rules:['armored','doubleTurn','hydra'],  avatar:1},
+    reina:   {rules:['armored','hydra'],  avatar:1},
     coloso:  {rules:['colossus','noProtect'],          avatar:0},
     colonia: {rules:['headStart','hydra','purge'],     avatar:1}
   };
@@ -1017,18 +1020,20 @@
     return o;
   }
   var ADV = loadAdv(), advRun = null;
-  function saveAdv(){ try{ localStorage.setItem(ADV_KEY, JSON.stringify(ADV)); }catch(e){} }
-  function advData(){ return advRun.mode==='campaign' ? ADV.camp : ADV.tower; }
+  function saveAdv(){ try{ localStorage.setItem(ADV_KEY, JSON.stringify(ADV)); }catch(e){} rankSoon(); }
+  function advData(){ return advRun.mode==='campaign' ? ADV.camp : (advRun.mode==='daily' ? advRun.d : ADV.tower); }
   /* perfil del rival según el modo y el nivel: dificultad, fallos, vista extra y jefe */
   function advProfile(mode, n){
+    if(mode==='daily') return advRun.def.prof;
     if(mode==='campaign'){ var c = CAMP[Math.min(n, CAMP.length)-1]; return {lv:c.lv, slip:c.slip!==undefined ? c.slip : .2, look:c.look||0, noise:4, boss:c.boss||null}; }
     var boss = (n%5===0) ? ['plaga','reina','coloso','colonia'][((n/5)-1)%4] : null, p = {noise:4, boss:boss, slip:.2, look:0};
     if(n<=2) p.lv = 'easy';
     else if(n<=6){ p.lv = 'normal'; p.slip = Math.max(.05, .5-.09*n); }
-    else { p.lv = 'hard'; p.look = Math.min(.95, .12*(n-5)); }
+    else { p.lv = 'hard'; p.look = Math.min(.95, .12*(n-5)); if(n>12){ p.slip = Math.max(0, .2-.025*(n-12)); p.noise = Math.max(1.5, 4-.2*(n-12)); } }
     return p;
   }
   function advRivalName(mode, n, prof){
+    if(mode==='daily') return advRun.def.name;
     if(prof.boss) return T('adv.boss.'+prof.boss);
     if(mode==='campaign') return T('adv.rival.'+n);
     var names = botNames(); return names[(n-1)%names.length];
@@ -1042,8 +1047,8 @@
     if(actor.boss){
       if(a.rules.indexOf('armored')>-1) org.status = 'vaccinated';
       if(a.rules.indexOf('colossus')>-1 && !a.used.colossus){ a.used.colossus = true; org.status = 'immune'; }
-    } else if(actor.id===MY_ID && a.perks.indexOf('first_protect')>-1 && !a.used.protect){
-      a.used.protect = true; org.status = 'vaccinated';
+    } else if(actor.id===MY_ID && a.perks.indexOf('first_protect')>-1 && (a.used.protect||0)<2){
+      a.used.protect = (a.used.protect||0)+1; org.status = 'vaccinated';
     }
   }
   function advFirstImmune(actor){
@@ -1051,8 +1056,8 @@
     return false;
   }
   function advHealBonus(actor){
-    if(state.adv && actor.id===MY_ID && advPerk('first_heal') && !state.adv.used.heal && !state.bonus){
-      state.adv.used.heal = true; state.bonus = true; addLog('perkAgain', {a:actor.name, ai:actor.id});
+    if(state.adv && actor.id===MY_ID && advPerk('first_heal') && (state.adv.used.heal||0)<2 && !state.bonus){
+      state.adv.used.heal = (state.adv.used.heal||0)+1; state.bonus = true; addLog('perkAgain', {a:actor.name, ai:actor.id});
     }
   }
   /* el órgano no muere: la hidra del jefe o tu segundo aliento (una vez por partida) */
@@ -1097,7 +1102,9 @@
       '<div class="adv-card"><b>'+T('adv.tower')+'</b><small>'+T('adv.tower.desc')+'</small><span class="adv-prog">'+T('adv.tower.progress', {n:t.level, l:advLivesText(t.lives), r:ADV.towerRecord})+'</span>'+
         '<button data-adv="tower">'+T(t.level>1 ? 'adv.continue' : 'adv.begin')+'</button>'+
         (t.level>1 ? '<button class="modal-sound" data-adv-reset="tower">'+T('adv.restart')+'</button>' : '')+'</div>'+
+      '<button class="modal-sound" id="advRank">'+T('rank.title')+'</button>'+
       '<button class="modal-sound" id="advClose">'+T('help.close')+'</button></div></div>';
+    document.getElementById('advRank').addEventListener('click', function(){ openRanking('tower'); });
     Array.prototype.forEach.call(root.querySelectorAll('[data-adv]'), function(b){
       b.addEventListener('click', function(){ root.innerHTML = ''; advRun = {mode:b.getAttribute('data-adv')}; showAdvIntro(); });
     });
@@ -1114,27 +1121,28 @@
   /* pantalla de presentación del nivel: rival, reglas del jefe y tus mejoras */
   function showAdvIntro(){
     var root = document.getElementById('overlayRoot'), d = advData(), n = d.level, prof = advProfile(advRun.mode, n);
-    var name = advRivalName(advRun.mode, n, prof), rules = prof.boss ? BOSSES[prof.boss].rules : [];
-    var av = prof.boss ? avatarHTML(0, 'neutral', BOSSES[prof.boss].avatar) : avatarHTML(n, 'neutral');
-    var head = advRun.mode==='campaign' ? T('adv.hud.camp', {n:n}) : T('adv.hud.tower', {n:n, l:advLivesText(d.lives)});
+    var name = advRivalName(advRun.mode, n, prof), rules = advRulesOf(prof);
+    var av = prof.daily ? avatarHTML(0, 'neutral', advRun.def.avatar) : (prof.boss ? avatarHTML(0, 'neutral', BOSSES[prof.boss].avatar) : avatarHTML(n, 'neutral'));
+    var head = advRun.mode==='daily' ? T('daily.title') : (advRun.mode==='campaign' ? T('adv.hud.camp', {n:n}) : T('adv.hud.tower', {n:n, l:advLivesText(d.lives)}));
     root.innerHTML = '<div class="overlay" id="advIntro"><div class="modal adv-modal adv-intro-modal'+(prof.boss ? ' is-boss' : '')+'">'+
       '<div class="adv-head">'+av+'<div><small>'+head+'</small><h3>'+(prof.boss ? '<span class="boss-tag">'+T('adv.boss')+'</span> ' : '')+escapeHtml(name)+'</h3></div></div>'+
       '<p class="adv-level">'+T('adv.level.'+prof.lv)+'</p>'+
-      (rules.length ? '<h4>'+T('adv.bossRules')+'</h4><ul class="adv-list">'+advRulesHTML(rules)+'</ul>' : '')+
+      (rules.length ? '<h4>'+T(prof.daily ? 'daily.rules' : 'adv.bossRules')+'</h4><ul class="adv-list">'+advRulesHTML(rules)+'</ul>' : '')+
       '<h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML(d.perks)+'</ul>'+
       '<button id="advGo">'+T('adv.start')+'</button><button class="modal-sound" id="advExit">'+T('adv.exit')+'</button></div></div>';
     document.getElementById('advGo').addEventListener('click', function(){ root.innerHTML = ''; startAdvMatch(); });
     document.getElementById('advExit').addEventListener('click', function(){ root.innerHTML = ''; advRun = null; goToSetup(); });
   }
   function startAdvMatch(){
-    var d = advData(), n = d.level, prof = advProfile(advRun.mode, n), rules = prof.boss ? BOSSES[prof.boss].rules : [];
+    var d = advData(), n = d.level, prof = advProfile(advRun.mode, n), rules = advRulesOf(prof);
     TUTORIAL = false; GAME_MODE = 'local'; MY_ID = 'human';
     winShown = false; powerToastShown = true; lastLogShown = null; seenCardIds = {}; discardMode = false; discardMarks = []; botTimer = null;
     prevSlots = null; prevCounts = null; prevLogKey = null; touched = {}; gameFlags = {hit:false};
     var human = newPlayer('human', T('you'), false), rival = newPlayer('bot0', advRivalName(advRun.mode, n, prof), true);
     rival.level = prof.lv; rival.ai = {slip:prof.slip, look:prof.look, noise:prof.noise};
-    if(prof.boss){ rival.boss = prof.boss; rival.bossAvatar = BOSSES[prof.boss].avatar; } else rival.avatar = n;
-    state = {players:[human, rival], deck:buildDeck(), discard:[], turn:Math.floor(Math.random()*2), turnCount:0, log:[], over:false, winnerId:null,
+    if(prof.daily){ rival.boss = 'daily'; rival.bossAvatar = advRun.def.avatar; }
+    else if(prof.boss){ rival.boss = prof.boss; rival.bossAvatar = BOSSES[prof.boss].avatar; } else rival.avatar = n;
+    state = {players:[human, rival], deck:buildDeck(prof.daily ? mulberry32(advRun.def.seed) : null), discard:[], turn:prof.daily ? advRun.def.turn : Math.floor(Math.random()*2), turnCount:0, log:[], over:false, winnerId:null,
       difficulty:prof.lv, adv:{mode:advRun.mode, level:n, boss:prof.boss, rules:rules.slice(), perks:d.perks.slice(), used:{}}};
     /* ventajas de partida: órgano inicial (mejora) y cuerpo adelantado del jefe */
     var free = COLORS.slice().sort(function(){ return Math.random()-.5; });
@@ -1197,7 +1205,7 @@
     if(!state || !state.adv){ hud.hidden = true; return; }
     var a = state.adv, d = advRun ? advData() : null;
     hud.hidden = false;
-    var txt = a.mode==='campaign' ? T('adv.hud.camp', {n:a.level}) : T('adv.hud.tower', {n:a.level, l:advLivesText(ADV.tower.lives)});
+    var txt = a.mode==='daily' ? T('daily.title') : (a.mode==='campaign' ? T('adv.hud.camp', {n:a.level}) : T('adv.hud.tower', {n:a.level, l:advLivesText(ADV.tower.lives)}));
     hud.innerHTML = '<span>'+txt+'</span>'+(a.boss ? '<b class="boss-tag">'+T('adv.boss')+'</b>' : '')+'<i>'+T('adv.hud.info')+'</i>';
   }
   function advInfoHTML(){
@@ -1213,6 +1221,148 @@
     document.getElementById('advInfoClose').addEventListener('click', function(){ root.innerHTML = ''; });
     document.getElementById('advInfo').addEventListener('click', function(e){ if(e.target.id==='advInfo') root.innerHTML = ''; });
   });
+
+  /* ================= Reto diario y ranking opcional ================= */
+  var DAILY_KEY = 'anticuerpos_daily', RANK_KEY = 'anticuerpos_rank';
+  var DAILY_RULES = [['headStart'], ['purge'], ['armored'], ['doubleTurn'], ['hydra'], ['colossus','noProtect'], ['headStart','purge'], ['hydra','purge']];
+  function advRulesOf(prof){ return prof.rules ? prof.rules.slice() : (prof.boss ? BOSSES[prof.boss].rules.slice() : []); }
+  function dayKey(d){ d = d || new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function yesterdayKey(){ var d = new Date(); d.setDate(d.getDate()-1); return dayKey(d); }
+  function hashStr(s){ var h = 2166136261; for(var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
+  function mulberry32(a){ return function(){ a |= 0; a = a+0x6D2B79F5|0; var t = Math.imul(a^a>>>15, 1|a); t = t+Math.imul(t^t>>>7, 61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  /* el reto de hoy sale de la fecha: mismo mazo, rival, regla y ayuda para todo el mundo */
+  function dailyDef(){
+    var key = dayKey(), seed = hashStr('anticuerpos-'+key), r = mulberry32(seed), dow = new Date().getDay();
+    var rules = DAILY_RULES[Math.floor(r()*DAILY_RULES.length)], perk = PERKS[Math.floor(r()*PERKS.length)], names = botNames();
+    var easy = dow>=1 && dow<=3;   /* lunes a miércoles, rival normal; el resto de la semana, difícil */
+    return {key:key, seed:seed, rules:rules, perk:perk, turn:Math.floor(r()*2), avatar:Math.floor(r()*2), name:names[Math.floor(r()*names.length)],
+      prof:{lv:easy ? 'normal' : 'hard', slip:easy ? .1 : .15, look:easy ? 0 : .25, noise:4, boss:null, daily:true, rules:rules}};
+  }
+  var DAILY = (function(){
+    var o = {lastWin:'', streak:0, best:0, wins:0};
+    try{ var s = JSON.parse(localStorage.getItem(DAILY_KEY)||'{}'); Object.keys(o).forEach(function(k){ if(typeof s[k]===typeof o[k]) o[k] = s[k]; }); }catch(e){}
+    return o;
+  })();
+  function saveDaily(){ try{ localStorage.setItem(DAILY_KEY, JSON.stringify(DAILY)); }catch(e){} rankSoon(); }
+  function dailyStreak(){ return (DAILY.lastWin===dayKey() || DAILY.lastWin===yesterdayKey()) ? DAILY.streak : 0; }
+  function dailyDone(){ return DAILY.lastWin===dayKey(); }
+  /* apunta la victoria de hoy; devuelve true si es la primera de hoy (la que suma a la racha) */
+  function dailyRecordWin(){
+    if(dailyDone()) return false;
+    DAILY.streak = (DAILY.lastWin===yesterdayKey() ? DAILY.streak : 0)+1;
+    DAILY.best = Math.max(DAILY.best, DAILY.streak); DAILY.wins++; DAILY.lastWin = dayKey();
+    saveDaily(); return true;
+  }
+  function dailyEndBlock(iWon){
+    var html = '', fresh = [];
+    if(iWon){
+      var first = dailyRecordWin(); fresh = checkAchievements({});
+      html = '<p class="adv-msg">'+T(first ? 'daily.won' : 'daily.wonAgain', {n:dailyStreak()})+'</p>';
+    } else html = '<p class="adv-msg">'+T('daily.lost')+'</p><button id="dlRetry">'+T('daily.retry')+'</button>';
+    html += '<button class="modal-sound" id="advLeave">'+T('adv.exit')+'</button>';
+    var ach = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
+    return {html:ach+html, bind:function(root){
+      var q = function(id, fn){ var e = document.getElementById(id); if(e) e.addEventListener('click', fn); };
+      q('dlRetry', function(){ root.innerHTML = ''; showAdvIntro(); });
+      q('advLeave', function(){ root.innerHTML = ''; advRun = null; goToSetup(); });
+    }};
+  }
+  function openDailyMenu(){
+    var root = document.getElementById('overlayRoot'), def = dailyDef(), done = dailyDone();
+    var date = new Date().toLocaleDateString(getLang()==='es' ? 'es-ES' : 'en-GB', {weekday:'long', day:'numeric', month:'long'});
+    root.innerHTML = '<div class="overlay" id="dailyMenu"><div class="modal adv-modal">'+
+      '<h3>'+T('daily.title')+'</h3><p class="adv-intro">'+T('daily.intro')+'</p>'+
+      '<div class="adv-card"><b>'+escapeHtml(date)+'</b><small>'+T('daily.rival', {n:escapeHtml(def.name)})+'</small>'+
+        '<h4>'+T('daily.rules')+'</h4><ul class="adv-list">'+advRulesHTML(def.rules)+'</ul><h4>'+T('adv.yourPerks')+'</h4><ul class="adv-list">'+advPerksHTML([def.perk])+'</ul>'+
+        '<span class="adv-prog">'+T(done ? 'daily.done' : 'daily.todo')+'</span>'+
+        '<span class="adv-prog">'+T('daily.streak', {n:dailyStreak(), b:DAILY.best})+'</span>'+
+        '<button id="dailyGo">'+T(done ? 'daily.again' : 'daily.play')+'</button></div>'+
+      '<button class="modal-sound" id="dailyRank">'+T('rank.title')+'</button>'+
+      '<button class="modal-sound" id="dailyClose">'+T('help.close')+'</button></div></div>';
+    document.getElementById('dailyGo').addEventListener('click', function(){
+      root.innerHTML = ''; var d = dailyDef();
+      advRun = {mode:'daily', def:d, d:{level:1, lives:1, perks:[d.perk]}}; showAdvIntro();
+    });
+    document.getElementById('dailyRank').addEventListener('click', function(){ openRanking('streak'); });
+    document.getElementById('dailyClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('dailyMenu').addEventListener('click', function(e){ if(e.target.id==='dailyMenu') root.innerHTML = ''; });
+  }
+  document.getElementById('btnDaily').addEventListener('click', function(){ Sfx.play('tap'); openDailyMenu(); });
+  function refreshDailyButton(){ var b = document.getElementById('btnDaily'); if(b) b.classList.toggle('new', !dailyDone()); }
+  refreshDailyButton();
+
+  /* ---- Ranking: opcional, con apodo; un documento por jugador en Firestore (ranking/{uid}) ---- */
+  var RANK = (function(){
+    var o = {on:false, name:''};
+    try{ var s = JSON.parse(localStorage.getItem(RANK_KEY)||'{}'); if(s.on && typeof s.name==='string'){ o.on = true; o.name = s.name; } }catch(e){}
+    return o;
+  })();
+  function saveRank(){ try{ localStorage.setItem(RANK_KEY, JSON.stringify(RANK)); }catch(e){} }
+  function rankClean(s){
+    s = String(s||'').replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ _-]/g, '').replace(/\s+/g, ' ').trim();
+    return (s.length>=3 && s.length<=14) ? s : null;
+  }
+  var rankTimer = null;
+  function rankSoon(){ if(!RANK.on) return; clearTimeout(rankTimer); rankTimer = setTimeout(function(){ rankSync().catch(function(){}); }, 1500); }
+  /* sube tus marcas (nunca las baja) y el apodo */
+  function rankSync(){
+    if(!RANK.on) return Promise.resolve();
+    var db = ensureFirebase(); if(!db) return Promise.reject(new Error(T('online.notConfigured')));
+    return ensureAuth().then(function(uid){
+      var ref = db.collection('ranking').doc(uid);
+      return ref.get().then(function(snap){
+        var old = snap.exists ? snap.data() : null, ot = old ? old.tower : 0, os = old ? old.streak : 0;
+        var tower = Math.max(ot, Math.min(99, ADV.towerRecord)), streak = Math.max(os, Math.min(999, DAILY.best));
+        if(old){ tower = Math.min(tower, ot+3); streak = Math.min(streak, os+3); }   /* las reglas limitan cuánto sube cada vez */
+        if(old && old.name===RANK.name && tower===ot && streak===os) return;
+        return ref.set({name:RANK.name, tower:tower, streak:streak, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      });
+    });
+  }
+  function openRanking(tab){
+    var root = document.getElementById('overlayRoot'); tab = tab==='streak' ? 'streak' : 'tower';
+    var tabs = ['tower','streak'].map(function(t){ return '<button class="rank-tab'+(t===tab ? ' on' : '')+'" data-tab="'+t+'">'+T('rank.tab.'+t)+'</button>'; }).join('');
+    var mine = RANK.on
+      ? '<p class="adv-intro">'+T('rank.in', {n:escapeHtml(RANK.name)})+'</p><button class="modal-sound" id="rankLeave">'+T('rank.leave')+'</button>'
+      : '<p class="adv-intro">'+T('rank.intro')+'</p><label class="rank-nick"><small>'+T('rank.nick')+'</small><input id="rankName" maxlength="14" autocomplete="off" value="'+escapeHtml(sanitizeName(document.getElementById('nameInput') ? document.getElementById('nameInput').value : ''))+'"></label><button id="rankJoin">'+T('rank.join')+'</button>';
+    root.innerHTML = '<div class="overlay" id="rankOverlay"><div class="modal adv-modal"><h3>'+T('rank.title')+'</h3>'+
+      '<div class="rank-tabs">'+tabs+'</div><ol class="rank-list" id="rankList"><li class="rank-msg">'+T('rank.loading')+'</li></ol>'+mine+
+      '<button class="modal-sound" id="rankClose">'+T('help.close')+'</button></div></div>';
+    Array.prototype.forEach.call(root.querySelectorAll('[data-tab]'), function(b){ b.addEventListener('click', function(){ openRanking(b.getAttribute('data-tab')); }); });
+    document.getElementById('rankClose').addEventListener('click', function(){ root.innerHTML = ''; });
+    document.getElementById('rankOverlay').addEventListener('click', function(e){ if(e.target.id==='rankOverlay') root.innerHTML = ''; });
+    var list = document.getElementById('rankList'), db = ensureFirebase();
+    var msg = function(k){ list.innerHTML = '<li class="rank-msg">'+T(k)+'</li>'; };
+    if(!db){ msg('online.notConfigured'); }
+    else {
+      var field = tab, myUid = null;
+      rankSync().catch(function(){}).then(function(){ return ensureAuth(); }).then(function(uid){
+        myUid = uid; return db.collection('ranking').orderBy(field, 'desc').limit(20).get();
+      }).then(function(snap){
+        var rows = []; snap.forEach(function(d){ var v = d.data(); if(v[field]>0) rows.push({id:d.id, name:v.name, v:v[field]}); });
+        if(!document.getElementById('rankList')) return;
+        if(!rows.length){ msg('rank.empty'); return; }
+        list.innerHTML = rows.map(function(r, i){
+          return '<li'+(r.id===myUid ? ' class="me"' : '')+'><span>'+(i+1)+'</span><b>'+escapeHtml(String(r.name||'?'))+(r.id===myUid ? ' <em>'+T('rank.you')+'</em>' : '')+'</b><i>'+T('rank.unit.'+field, {n:r.v})+'</i></li>';
+        }).join('');
+      }).catch(function(){ if(document.getElementById('rankList')) msg('rank.err'); });
+    }
+    var join = document.getElementById('rankJoin');
+    if(join) join.addEventListener('click', function(){
+      var nm = rankClean(document.getElementById('rankName').value);
+      if(!nm){ toast(T('rank.nickBad')); return; }
+      join.disabled = true; RANK = {on:true, name:nm};
+      rankSync().then(function(){ saveRank(); toast(T('rank.joined', {n:nm})); openRanking(tab); })
+        .catch(function(e){ RANK = {on:false, name:''}; join.disabled = false; toast(T('online.syncFail', {m:e.message})); });
+    });
+    var leave = document.getElementById('rankLeave');
+    if(leave) leave.addEventListener('click', function(){
+      if(!window.confirm(T('rank.leaveConfirm'))) return;
+      ensureAuth().then(function(uid){ return db.collection('ranking').doc(uid).delete(); }).then(function(){
+        RANK = {on:false, name:''}; saveRank(); openRanking(tab);
+      }).catch(function(e){ toast(T('online.syncFail', {m:e.message})); });
+    });
+  }
 
   /* ================= Aviso de turno, destello de borde y marca de lo que acaba de tocar un rival ================= */
   function showBanner(html, kind){
@@ -1830,7 +1980,7 @@
     var iWon = winner.id===MY_ID;
     Sfx.play(iWon ? 'win' : 'lose');
     var fresh = recordGame(winner);   /* estadísticas y logros de esta partida */
-    var advBlock = (state.adv && advRun) ? advEndBlock(iWon) : null;   /* aventura: progreso, mejoras y vidas */
+    var advBlock = (state.adv && advRun) ? (advRun.mode==='daily' ? dailyEndBlock(iWon) : advEndBlock(iWon)) : null;   /* aventura: progreso, mejoras y vidas */
     var achHTML = fresh.length ? '<div class="ach-new">'+fresh.map(function(id){ return '<span>★ '+T('ach.'+id+'.name')+'</span>'; }).join('')+'</div>' : '';
     var msg = iWon ? T('win.meMsg') : escapeHtml(T('win.otherMsg',{n:winner.name}));
     /* el cuerpo completo del ganador, órgano a órgano; el escudo marca los inmunes */
@@ -1889,6 +2039,7 @@
     TUTORIAL = false;
     var coach = document.getElementById('coach'); if(coach) coach.hidden = true;
     refreshTutorialButton();
+    refreshDailyButton();
     showScreen('setup');
   }
   function refreshTutorialButton(){

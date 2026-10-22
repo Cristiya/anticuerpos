@@ -28,6 +28,8 @@ HOW IT WORKS
 PLAY YOUR WAY
 • This device: play against 1 to 4 bots in three difficulty levels (Easy, Normal and Hard), no connection needed to the game itself.
 • Adventure mode: a 10-level campaign and an endless tower with bosses that bend the rules, and an upgrade to pick after every win.
+• Daily challenge: a new game every day, the same for everyone, with a streak to keep.
+• Optional leaderboard (tower and daily streak) with a nickname you choose.
 • Learn in a minute with the interactive tutorial.
 • Online: create a room and invite friends with a link (or the 4-character code). Up to 5 players, with optional CPU players, and a rematch button to keep playing with the same group.
 • Your hand is private: other players only see how many cards you hold.
@@ -43,10 +45,9 @@ DESIGNED FOR THE PHONE
 Quick to learn, hard to master. Who will complete their body first?
 
 **What’s new** (max 500):
-• New Adventure mode: a 10-level campaign and an endless tower, with bosses that bend the rules and upgrades to pick after every win.
-• Rematch with the same players; hold a card to see it large.
-• Stats and achievements, plus accessibility options.
-• Redesigned cards, new animations and fairer turns.
+• New Daily challenge: the same game for everyone each day, with a streak and new achievements.
+• Optional leaderboard for the endless tower and the daily streak.
+• Adventure mode rebalanced: a fairer final boss, a tougher tower and stronger upgrades.
 
 ---
 
@@ -74,6 +75,8 @@ CÓMO SE JUEGA
 JUEGA A TU MANERA
 • En este dispositivo: contra 1 a 4 bots en tres niveles de dificultad (Fácil, Normal y Difícil), sin necesitar conexión para jugar.
 • Modo aventura: una campaña de 10 niveles y una torre infinita con jefes que cambian las reglas, y una mejora a elegir tras cada victoria.
+• Reto diario: una partida nueva cada día, igual para todos, con una racha que mantener.
+• Ranking opcional (torre y racha diaria) con un apodo que eliges tú.
 • Aprende en un minuto con el tutorial interactivo.
 • Online: crea una sala e invita a tus amigos con un enlace (o con el código de 4 caracteres). Hasta 5 jugadores, con CPU opcionales y botón de revancha para seguir con el mismo grupo.
 • Tu mano es privada: los demás solo ven cuántas cartas tienes.
@@ -89,10 +92,9 @@ PENSADO PARA EL MÓVIL
 Fácil de aprender, difícil de dominar. ¿Quién completará su cuerpo primero?
 
 **Novedades** (máx. 500):
-• Nuevo modo aventura: una campaña de 10 niveles y una torre infinita, con jefes que cambian las reglas y mejoras a elegir tras cada victoria.
-• Revancha con los mismos jugadores; mantén pulsada una carta para verla en grande.
-• Estadísticas y logros, y opciones de accesibilidad.
-• Cartas rediseñadas, animaciones nuevas y turnos más justos.
+• Nuevo reto diario: la misma partida para todo el mundo cada día, con racha y logros nuevos.
+• Ranking opcional para la torre infinita y la racha diaria.
+• Modo aventura reequilibrado: jefe final más justo, torre más exigente y mejoras más potentes.
 
 ---
 

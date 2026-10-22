@@ -44,11 +44,14 @@
   </ul>
   <p>No se piden ni se recogen datos de contacto, ubicación, contactos, fotos, micrófono, cámara ni identificadores publicitarios.</p>
 
+  <h2>Ranking opcional</h2>
+  <p>Si decides unirte al ranking (desde el modo aventura o el reto diario), se guarda en Cloud Firestore tu <b>apodo</b> (3 a 14 caracteres que eliges tú) junto con tu identificador anónimo y tus marcas (nivel de la torre y mejor racha del reto diario). Estos datos son <b>visibles para todos los jugadores</b> de la aplicación. Es voluntario: sin unirte, no se envía nada. Puedes salir en cualquier momento desde la misma pantalla del ranking, y tus datos se borran al instante.</p>
+
   <h2>Dónde se guardan y cuánto tiempo</h2>
   <p>Los datos se guardan en Cloud Firestore, en la región de la Unión Europea (eur3). La sala y las manos se borran cuando el anfitrión
   cierra la sala o abandona la partida. Si una sala se abandona sin cerrarse, se elimina manualmente de forma periódica.
   Las manos de cada jugador solo son legibles por su propietario.</p>
-  <p>En tu dispositivo se guardan, solo en local, tu nombre de jugador, el idioma elegido, tus ajustes (sonido, dificultad y accesibilidad), tus estadísticas y logros, y el código de la última sala (para poder volver a ella). Las estadísticas y los logros nunca salen de tu dispositivo.</p>
+  <p>En tu dispositivo se guardan, solo en local, tu nombre de jugador, el idioma elegido, tus ajustes (sonido, dificultad y accesibilidad), tus estadísticas y logros, y el código de la última sala (para poder volver a ella). Las estadísticas y los logros nunca salen de tu dispositivo, al igual que el progreso del modo aventura y el reto diario (solo se publican las marcas del ranking si te unes a él).</p>
 
   <h2>Recursos que se cargan desde servidores de Google</h2>
   <p>Al abrir la aplicación se descargan las tipografías (Google Fonts) y las librerías de Firebase desde servidores de Google.
@@ -96,11 +99,14 @@
   </ul>
   <p>The app does not ask for or collect contact details, location, contacts, photos, microphone, camera or advertising identifiers.</p>
 
+  <h2>Optional leaderboard</h2>
+  <p>If you choose to join the leaderboard (from adventure mode or the daily challenge), your <b>nickname</b> (3 to 14 characters of your choice) is stored in Cloud Firestore together with your anonymous identifier and your records (tower level and best daily-challenge streak). This data is <b>visible to all players</b> of the app. It is voluntary: if you don’t join, nothing is sent. You can leave at any time from the leaderboard screen itself, and your data is deleted immediately.</p>
+
   <h2>Where it is stored and for how long</h2>
   <p>Data is stored in Cloud Firestore, in the European Union region (eur3). The room and the hands are deleted when the host closes the room
   or leaves the game. If a room is abandoned without being closed, it is removed manually on a regular basis.
   Each player’s hand can only be read by its owner.</p>
-  <p>On your device, only locally, the app keeps your player name, the language you chose, your settings (sound, difficulty and accessibility), your stats and achievements, and the code of your last room (so you can return to it). Stats and achievements never leave your device.</p>
+  <p>On your device, only locally, the app keeps your player name, the language you chose, your settings (sound, difficulty and accessibility), your stats and achievements, and the code of your last room (so you can return to it). Stats and achievements never leave your device, and neither does your adventure-mode and daily-challenge progress (only the leaderboard records are published if you join it).</p>
 
   <h2>Resources loaded from Google servers</h2>
   <p>When the app opens it downloads fonts (Google Fonts) and the Firebase libraries from Google servers.
