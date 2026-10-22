@@ -45,6 +45,7 @@ DESIGNED FOR THE PHONE
 Quick to learn, hard to master. Who will complete their body first?
 
 **What’s new** (max 500):
+• Fixed a bug that sometimes stopped you from placing an organ.
 • New Daily challenge: the same game for everyone each day, with a streak and new achievements.
 • Optional leaderboard for the endless tower and the daily streak.
 • Adventure mode rebalanced: a fairer final boss, a tougher tower and stronger upgrades.
@@ -92,6 +93,7 @@ PENSADO PARA EL MÓVIL
 Fácil de aprender, difícil de dominar. ¿Quién completará su cuerpo primero?
 
 **Novedades** (máx. 500):
+• Corregido un fallo que a veces impedía colocar un órgano.
 • Nuevo reto diario: la misma partida para todo el mundo cada día, con racha y logros nuevos.
 • Ranking opcional para la torre infinita y la racha diaria.
 • Modo aventura reequilibrado: jefe final más justo, torre más exigente y mejoras más potentes.
