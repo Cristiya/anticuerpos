@@ -117,7 +117,8 @@
     player.hand.push(state.deck.pop());
     return true;
   }
-  /* Las CPU difíciles ven una carta más: roban una extra y se quedan con las 3 mejores. La mano nunca pasa de 3 cartas. */
+  /* Las CPU difíciles ven una carta más: roban una extra y se quedan con las 3 mejores. La mano nunca pasa de 3 cartas.
+     Siempre en el nivel Difícil (look:1); el modo aventura, la torre y el reto diario fijan su propio look por nivel. */
   function extraLook(p){
     if(p.hand.length<HAND_SIZE || Math.random()>=botParam(p,'look') || !drawOne(p)) return;
     var base = evalFor(p), acts = legalActions(p), worst = null, worstV = 1e9;
@@ -537,7 +538,7 @@
     return pickRandom(organs.length && Math.random()<.5 ? organs : acts);
   }
   /* pesos de la IA difícil */
-  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.1, discardBase:.05, discardEach:.1, riskH:1, riskV:.8, slip:.2, look:.3, grace:0, noise:4, cds:[2,3,2,0], p2infect:1, p1heal:1, bonusCard:{adrenalina:2.2, amputacion:1.6, anestesia:2.2}};
+  var HARD = {healthy:2, vacc:2.4, immune:3, infected:.6, barrier:.6, near:4, topW:1.1, otherW:.5, handW:.1, discardBase:.05, discardEach:.1, riskH:1, riskV:.8, slip:.2, look:1, grace:0, noise:4, cds:[2,3,2,0], p2infect:1, p1heal:1, bonusCard:{adrenalina:2.2, amputacion:1.6, anestesia:2.2}};
   /* riesgo de cada color: cuántos patógenos de ese color quedan por salir (se cuentan el descarte, la mano del bot y los ya puestos) */
   var riskCtx = null;
   function riskMap(bot){
