@@ -1680,8 +1680,24 @@
       var off = i-(n-1)/2;
       return cardHTML(card, {selected:selected, marked:marked, enter:enter, rot:(off*step).toFixed(1), dy:(off*off*1.6).toFixed(1)});
     }).join('');
+    fitHand(el);
     flyInNewCards(el);
   }
+  /* con 4 o mas cartas la mano no cabe en la fila: se solapan lo justo (queda a la vista la franja izquierda de cada una,
+     con su icono y titulo) para que se vean todas sin desplazarse. Con 3 cartas no hace nada. */
+  function fitHand(el){
+    var cards = el.children, n = cards.length;
+    el.style.setProperty('--hand-ov','0px');
+    if(n<2) return;
+    var cs = getComputedStyle(el), gap = parseFloat(cs.columnGap) || 10;
+    var avail = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - (n>3 ? 8 : 0);   /* margen: las cartas de los extremos van inclinadas */
+    var w = cards[0].offsetWidth;
+    var need = n*w + (n-1)*gap;
+    if(!w || need<=avail) return;
+    var ov = Math.min((need-avail)/(n-1), w-44);   /* siempre quedan 44 px de cada carta a la vista */
+    el.style.setProperty('--hand-ov', ov.toFixed(1)+'px');
+  }
+  window.addEventListener('resize', function(){ var h = document.getElementById('hand'); if(h && h.children.length) fitHand(h); });
   /* las cartas recién robadas vuelan desde el mazo hasta la mano (una copia flotante: la mano recorta lo que se sale) */
   function flyInNewCards(handEl){
     var enters = handEl.querySelectorAll('.card.enter'), pile = document.getElementById('drawPile');
