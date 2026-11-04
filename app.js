@@ -716,8 +716,43 @@
     t._h = setTimeout(function(){ t.classList.remove('show'); }, ms||1800);
   }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  /* nickfilter:start */
+  /* ---- Filtro de apodos ofensivos (apodo del ranking y nombre en sala) ----
+     Normaliza (minusculas, sin tildes, 0->o 3->e 4->a @->a $->s...), ignora separadores y letras repetidas
+     ("p.u.u.t.a" cuenta) y busca:
+       - NICK_SUB: raices que se buscan dentro del texto;
+       - NICK_EXACT: palabras que solo cuentan enteras (con relleno de numeros o x), para no censurar
+         "Vergara", "Hancock" o "Peacock";
+       - NICK_OK: palabras inocentes que contienen una raiz ("computadora", "Amputacion") y se quitan antes.
+     Es un filtro de apodos, no de lenguaje: lo que no esta en la lista pasa, y el rival puede saltarselo
+     con una app modificada (por eso tambien se oculta al mostrar el ranking). */
+  var NICK_SUB = ['puta','puto','mierda','joder','jodid','cabron','pendej','gilipoll','capullo','zorra','maricon','polla','follar',
+    'chingad','chingar','culero','lamecul','conchatu','hijoputa','violador','violacion','pedofil','pederast','hitler','imbecil',
+    'subnormal','retrasado','mongolo','negrata','sudaca','bollera',
+    'fuck','shit','bitch','cunt','pussy','asshole','bastard','whore','slut','nigger','nigga','faggot','rapist','porn','penis',
+    'vagina','blowjob','handjob','cumshot','dickhead','wanker'];
+  var NICK_EXACT = ['verga','culo','tetas','nazi','dick','cock','fag','rape','cum','anal','sex','sexy','tits','boob','retard','twat','ass','kkk'];
+  var NICK_OK = ['comput','reput','disput','imput','amput','diput','caputo','scunthorpe','shiitake'];
+  var NICK_LEET = {'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','@':'a','$':'s','!':'i','|':'i','+':'t'};
+  var nickSubRe = null, nickExactRe = null;
+  function nickRepeat(w){ return w.split('').map(function(c){ return c+'+'; }).join(''); }
+  function nickBlocked(raw){
+    if(!nickSubRe){
+      nickSubRe = new RegExp(NICK_SUB.map(nickRepeat).join('|'));
+      nickExactRe = new RegExp('^x*(?:'+NICK_EXACT.map(nickRepeat).join('|')+')(?:s|es)?x*$');
+    }
+    var folded = String(raw||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/[0134578@$!|+]/g, function(ch){ return NICK_LEET[ch]; });
+    var tokens = folded.split(/[\s_\-.,;:]+/).map(function(t){ return t.replace(/[^a-z]/g,''); }).filter(Boolean);
+    var letters = tokens.join('');
+    NICK_OK.forEach(function(ok){ letters = letters.split(ok).join(''); });
+    if(nickSubRe.test(letters)) return true;
+    return tokens.some(function(t){ return nickExactRe.test(t); });
+  }
+  /* nickfilter:end */
   function sanitizeName(raw){
     var cleaned = String(raw||'').replace(/[<>&"']/g,'').trim().slice(0,16);
+    if(cleaned && nickBlocked(cleaned)) return T('player');   /* nombre ofensivo: se usa el nombre por defecto */
     return cleaned || T('player');
   }
 
@@ -1308,6 +1343,7 @@
   /* sube tus marcas (nunca las baja) y el apodo */
   function rankSync(){
     if(!RANK.on) return Promise.resolve();
+    if(nickBlocked(RANK.name)){ RANK = {on:false, name:''}; saveRank(); return Promise.resolve(); }
     var db = ensureFirebase(); if(!db) return Promise.reject(new Error(T('online.notConfigured')));
     return ensureAuth().then(function(uid){
       var ref = db.collection('ranking').doc(uid);
@@ -1325,7 +1361,7 @@
     var tabs = ['tower','streak'].map(function(t){ return '<button class="rank-tab'+(t===tab ? ' on' : '')+'" data-tab="'+t+'">'+T('rank.tab.'+t)+'</button>'; }).join('');
     var mine = RANK.on
       ? '<p class="adv-intro">'+T('rank.in', {n:escapeHtml(RANK.name)})+'</p><button class="modal-sound" id="rankLeave">'+T('rank.leave')+'</button>'
-      : '<p class="adv-intro">'+T('rank.intro')+'</p><label class="rank-nick"><small>'+T('rank.nick')+'</small><input id="rankName" maxlength="14" autocomplete="off" value="'+escapeHtml(sanitizeName(document.getElementById('nameInput') ? document.getElementById('nameInput').value : ''))+'"></label><button id="rankJoin">'+T('rank.join')+'</button>';
+      : '<p class="adv-intro">'+T('rank.intro')+'</p><label class="rank-nick"><small>'+T('rank.nick')+'</small><input id="rankName" maxlength="14" autocomplete="off" value="'+escapeHtml(sanitizeName(document.getElementById('nameInput') ? document.getElementById('nameInput').value : ''))+'"></label><p class="rank-err" id="rankErr" role="alert" hidden></p><button id="rankJoin">'+T('rank.join')+'</button>';
     root.innerHTML = '<div class="overlay" id="rankOverlay"><div class="modal adv-modal"><h3>'+T('rank.title')+'</h3>'+
       '<div class="rank-tabs">'+tabs+'</div><ol class="rank-list" id="rankList"><li class="rank-msg">'+T('rank.loading')+'</li></ol>'+mine+
       '<button class="modal-sound" id="rankClose">'+T('help.close')+'</button></div></div>';
@@ -1344,14 +1380,18 @@
         if(!document.getElementById('rankList')) return;
         if(!rows.length){ msg('rank.empty'); return; }
         list.innerHTML = rows.map(function(r, i){
-          return '<li'+(r.id===myUid ? ' class="me"' : '')+'><span>'+(i+1)+'</span><b>'+escapeHtml(String(r.name||'?'))+(r.id===myUid ? ' <em>'+T('rank.you')+'</em>' : '')+'</b><i>'+T('rank.unit.'+field, {n:r.v})+'</i></li>';
+          return '<li'+(r.id===myUid ? ' class="me"' : '')+'><span>'+(i+1)+'</span><b>'+escapeHtml(nickBlocked(r.name) ? T('rank.hidden') : String(r.name||'?'))+(r.id===myUid ? ' <em>'+T('rank.you')+'</em>' : '')+'</b><i>'+T('rank.unit.'+field, {n:r.v})+'</i></li>';
         }).join('');
       }).catch(function(){ if(document.getElementById('rankList')) msg('rank.err'); });
     }
     var join = document.getElementById('rankJoin');
     if(join) join.addEventListener('click', function(){
-      var nm = rankClean(document.getElementById('rankName').value);
-      if(!nm){ toast(T('rank.nickBad')); return; }
+      var rawNm = document.getElementById('rankName').value, nm = rankClean(rawNm), err = document.getElementById('rankErr');
+      /* el aviso va dentro de la ventana: toast() no se muestra con una ventana abierta */
+      var fail = function(k){ err.textContent = T(k); err.hidden = false; };
+      if(!nm){ fail('rank.nickBad'); return; }
+      if(nickBlocked(rawNm) || nickBlocked(nm)){ fail('rank.nickBlocked'); return; }
+      err.hidden = true;
       join.disabled = true; RANK = {on:true, name:nm};
       rankSync().then(function(){ saveRank(); toast(T('rank.joined', {n:nm})); openRanking(tab); })
         .catch(function(e){ RANK = {on:false, name:''}; join.disabled = false; toast(T('online.syncFail', {m:e.message})); });

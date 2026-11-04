@@ -593,3 +593,4 @@ html[data-rm] .zoom-layer,html[data-rm] .zoom-box{animation:none!important;}
   .myslots .slot{height:56px;}
   .myslots .slot svg{width:26px;height:26px;}
 }
+.rank-err{margin:-2px 0 8px;color:var(--c-heart);font-size:.82rem;font-weight:600;text-align:left;}
