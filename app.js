@@ -1356,6 +1356,17 @@
       });
     });
   }
+  /* Denuncias: se guardan en reports/{tuUid_suUid} (las reglas solo dejan crearlas; se revisan en la consola de Firebase)
+     y el apodo denunciado deja de verse en este dispositivo. */
+  var HIDDEN_KEY = 'anticuerpos_rank_hidden';
+  function rankHiddenList(){ try{ var a = JSON.parse(localStorage.getItem(HIDDEN_KEY)||'[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+  function rankHide(uid){ var a = rankHiddenList(); if(a.indexOf(uid)<0) a.push(uid); try{ localStorage.setItem(HIDDEN_KEY, JSON.stringify(a.slice(-300))); }catch(e){} }
+  function rankReport(db, targetUid, name){
+    return ensureAuth().then(function(me){
+      return db.collection('reports').doc(me+'_'+targetUid).set({target:targetUid, name:String(name||'').slice(0,14), createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+  }
+  var FLAG_ICON = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 21V4m0 0h10.5l-2 4 2 4H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function openRanking(tab){
     var root = document.getElementById('overlayRoot'); tab = tab==='streak' ? 'streak' : 'tower';
     var tabs = ['tower','streak'].map(function(t){ return '<button class="rank-tab'+(t===tab ? ' on' : '')+'" data-tab="'+t+'">'+T('rank.tab.'+t)+'</button>'; }).join('');
@@ -1363,7 +1374,7 @@
       ? '<p class="adv-intro">'+T('rank.in', {n:escapeHtml(RANK.name)})+'</p><button class="modal-sound" id="rankLeave">'+T('rank.leave')+'</button>'
       : '<p class="adv-intro">'+T('rank.intro')+'</p><label class="rank-nick"><small>'+T('rank.nick')+'</small><input id="rankName" maxlength="14" autocomplete="off" value="'+escapeHtml(sanitizeName(document.getElementById('nameInput') ? document.getElementById('nameInput').value : ''))+'"></label><p class="rank-err" id="rankErr" role="alert" hidden></p><button id="rankJoin">'+T('rank.join')+'</button>';
     root.innerHTML = '<div class="overlay" id="rankOverlay"><div class="modal adv-modal"><h3>'+T('rank.title')+'</h3>'+
-      '<div class="rank-tabs">'+tabs+'</div><ol class="rank-list" id="rankList"><li class="rank-msg">'+T('rank.loading')+'</li></ol>'+mine+
+      '<div class="rank-tabs">'+tabs+'</div><ol class="rank-list" id="rankList"><li class="rank-msg">'+T('rank.loading')+'</li></ol><p class="rank-note" id="rankNote" role="status" hidden></p>'+mine+
       '<button class="modal-sound" id="rankClose">'+T('help.close')+'</button></div></div>';
     Array.prototype.forEach.call(root.querySelectorAll('[data-tab]'), function(b){ b.addEventListener('click', function(){ openRanking(b.getAttribute('data-tab')); }); });
     document.getElementById('rankClose').addEventListener('click', function(){ root.innerHTML = ''; });
@@ -1376,12 +1387,25 @@
       rankSync().catch(function(){}).then(function(){ return ensureAuth(); }).then(function(uid){
         myUid = uid; return db.collection('ranking').orderBy(field, 'desc').limit(20).get();
       }).then(function(snap){
-        var rows = []; snap.forEach(function(d){ var v = d.data(); if(v[field]>0) rows.push({id:d.id, name:v.name, v:v[field]}); });
+        var hidden = rankHiddenList(), rows = [];
+        snap.forEach(function(d){ var v = d.data(); if(v[field]>0 && hidden.indexOf(d.id)<0) rows.push({id:d.id, name:v.name, v:v[field]}); });
         if(!document.getElementById('rankList')) return;
         if(!rows.length){ msg('rank.empty'); return; }
         list.innerHTML = rows.map(function(r, i){
-          return '<li'+(r.id===myUid ? ' class="me"' : '')+'><span>'+(i+1)+'</span><b>'+escapeHtml(nickBlocked(r.name) ? T('rank.hidden') : String(r.name||'?'))+(r.id===myUid ? ' <em>'+T('rank.you')+'</em>' : '')+'</b><i>'+T('rank.unit.'+field, {n:r.v})+'</i></li>';
+          return '<li'+(r.id===myUid ? ' class="me"' : '')+'><span>'+(i+1)+'</span><b>'+escapeHtml(nickBlocked(r.name) ? T('rank.hidden') : String(r.name||'?'))+(r.id===myUid ? ' <em>'+T('rank.you')+'</em>' : '')+'</b><i>'+T('rank.unit.'+field, {n:r.v})+'</i>'+(r.id===myUid ? '' : '<button class="rank-flag" data-uid="'+escapeHtml(r.id)+'" aria-label="'+escapeHtml(T('rank.report'))+'" title="'+escapeHtml(T('rank.report'))+'">'+FLAG_ICON+'</button>')+'</li>';
         }).join('');
+        list.onclick = function(e){
+          var btn = e.target.closest ? e.target.closest('.rank-flag') : null; if(!btn) return;
+          var uid = btn.getAttribute('data-uid'), row = rows.find(function(x){ return x.id===uid; });
+          if(!row || !window.confirm(T('rank.reportConfirm', {n:nickBlocked(row.name) ? T('rank.hidden') : String(row.name||'?')}))) return;
+          var note = document.getElementById('rankNote');
+          btn.disabled = true;
+          rankReport(db, uid, row.name).then(function(){
+            rankHide(uid);
+            var li = btn.closest('li'); if(li) li.remove();
+            note.textContent = T('rank.reported'); note.hidden = false;
+          }).catch(function(){ btn.disabled = false; note.textContent = T('rank.reportFail'); note.hidden = false; });
+        };
       }).catch(function(){ if(document.getElementById('rankList')) msg('rank.err'); });
     }
     var join = document.getElementById('rankJoin');

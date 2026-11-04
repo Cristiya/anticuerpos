@@ -20,6 +20,20 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Denuncias de apodos del ranking: solo se pueden crear (una por denunciante y apodo, por eso el id
+    // es "uidDenunciante_uidDenunciado") y nadie las lee desde la app; se revisan en la consola de Firebase.
+    match /reports/{reportId} {
+      function rp() { return request.resource.data; }
+      allow create: if request.auth != null
+        && reportId == request.auth.uid + '_' + rp().target
+        && rp().keys().hasOnly(['target', 'name', 'createdAt'])
+        && rp().target is string && rp().target.size() > 0 && rp().target.size() <= 128
+        && rp().target != request.auth.uid
+        && rp().name is string && rp().name.size() <= 30
+        && rp().createdAt == request.time;
+      allow read, update, delete: if false;
+    }
+
     match /rooms/{roomId} {
 
       function signedIn() { return request.auth != null; }
