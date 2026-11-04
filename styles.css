@@ -526,6 +526,56 @@ html[data-rm] .zoom-layer,html[data-rm] .zoom-box{animation:none!important;}
 .modal .perk-opt{display:block;text-align:left;background:color-mix(in srgb, var(--treatment) 10%, var(--surface));color:var(--ink);border:1.5px solid color-mix(in srgb, var(--treatment) 45%, var(--line));margin-bottom:8px;}
 .perk-opt b{display:block;font-size:.88rem;}
 .perk-opt small{display:block;font-size:.72rem;color:var(--ink-dim);font-weight:500;margin-top:2px;line-height:1.35;}
+/* ---------- Tablets y pantallas anchas: el fondo ocupa todo el ancho y el juego lo aprovecha ---------- */
+@media (min-width:700px){
+  #app{max-width:none;}
+  /* menus: contenido en una columna centrada, con el fondo a pantalla completa */
+  .setup > *:not(.lang-toggle):not(.sound-toggle){width:100%;max-width:580px;margin-left:auto;margin-right:auto;}
+  .lobby-inner{width:100%;max-width:580px;margin:0 auto;}
+  /* partida */
+  .topbar{padding-left:28px;padding-right:28px;}
+  .turn-indicator{max-width:60vw;font-size:.88rem;}
+  .coach,.adv-hud{width:calc(100% - 56px);max-width:760px;margin-left:auto;margin-right:auto;}
+  .opponents{display:flex;justify-content:center;gap:14px;padding:12px 28px 6px;}
+  .oppcard,.oppcard:last-child:nth-child(odd){flex:1 1 0;width:auto;max-width:300px;padding:8px 10px;}
+  .oppname{font-size:.9rem;}
+  .oppcard .avatar{width:26px;height:26px;}
+  .oppslots{gap:6px;}
+  .oppslots .slot svg{width:26px;height:26px;}
+  .table{width:100%;max-width:840px;margin:0 auto;padding:10px 28px;gap:14px;}
+  .pile{width:62px;height:80px;}
+  .log{height:72px;font-size:.78rem;}
+  .myboard{padding:8px 28px 10px;}
+  .myboard > *{width:100%;max-width:600px;margin-left:auto;margin-right:auto;}
+  .myboard .rowlabel{font-size:.74rem;}
+  .myslots{gap:12px;}
+  .myslots .slot svg{width:48px;height:48px;}
+  .myslots .slot-label{font-size:.8rem;}
+  .myslots .slot-state{font-size:.64rem;}
+  .status{padding:10px 28px 0;text-align:center;font-size:.88rem;}
+  .hand{gap:16px;padding:18px 28px 12px;}
+  .card{width:128px;min-height:178px;padding:11px 11px 12px;}
+  .card-top{width:34px;height:34px;}
+  .card-top svg{width:25px;height:25px;}
+  .card-kind{font-size:.5rem;}
+  .card-title{font-size:.95rem;}
+  .card-sub{font-size:.78rem;}
+  .actions{width:100%;max-width:600px;margin:0 auto;padding:0 28px 14px;}
+  .actions button{font-size:.95rem;padding:14px 12px;}
+  .sheet{max-width:640px;margin-left:auto;margin-right:auto;}
+}
+
+/* tablet en vertical: los rivales en 2x2 (mas grandes) y el tablero propio algo mayor */
+@media (min-width:700px) and (orientation:portrait){
+  .opponents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:780px;margin:0 auto;padding:14px 28px 6px;}
+  .oppcard,.oppcard:last-child:nth-child(odd){width:auto;max-width:none;padding:10px 12px;}
+  .oppcard:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 6px);}
+  .oppslots{gap:8px;}
+  .oppslots .slot svg{width:30px;height:30px;}
+  .myboard > *{max-width:680px;}
+  .myslots .slot svg{width:54px;height:54px;}
+}
+
 /* pantallas bajas: con varios rivales a la vista, el resto del tablero se compacta para que "Tu cuerpo" no quede aplastado */
 @media (max-height:720px){
   .table{padding:4px 14px;}
